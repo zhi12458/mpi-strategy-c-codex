@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "skill_version": "0.1.0-rc1",
+  "release_ready": false,
+  "release_status": "blocked_pending_official_upstream_merges",
+  "mpi_translations": {
+    "origin": "https://git.sr.ht/~iacore/mpi-translations/",
+    "expected_sha": "9d1cb977d41e1df2ae7f26c6b98b55cdd9ec1633",
+    "required_files": ["AGENTS.md", "scripts/doctor.py", "strategy-c-release.json"]
+  },
+  "translation_toolkit": {
+    "origin": "https://codeberg.org/eastwind/translation-toolkit.git",
+    "expected_sha": "7077d962c065f85f70ad67c80daba63315279ee9",
+    "submodule_path": "toolkit",
+    "required_files": [
+      "AGENTS.md",
+      "scripts/doctor.py",
+      "scripts/source2dj.py",
+      "scripts/docx2dj.py",
+      "scripts/build-term-map.py",
+      "terms-database/search.py",
+      "terms-database/termlib.sqlite",
+      "scripts/deepseek-source-analysis.py",
+      "scripts/freeze-target.py",
+      "scripts/gen-bilingual.py",
+      "scripts/deepseek-review.py",
+      "scripts/check-translation.py",
+      "scripts/dj2docx.py",
+      "scripts/check-docx.py",
+      "scripts/gen-subtitles.py",
+      "scripts/check-subtitles.py"
+    ]
+  },
+  "whisper": {
+    "model_filename": "whisper-medium-2512-ft-best-ggml.bin",
+    "model_sha256": "a51dbd2b82d0235a060b512749ada2fac84dac41e583199195ca446b13dc4915",
+    "engine": "whisper.cpp",
+    "engine_origin": "https://github.com/ggml-org/whisper.cpp.git",
+    "engine_sha": "86c40c3bd6fc86f1187fb751d111b49e0fc18e84"
+  },
+  "models": {
+    "source_analysis": {"provider": "deepseek", "model": "deepseek-v4-flash", "reasoning_effort": "high"},
+    "translation": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
+    "review": {"provider": "deepseek", "model": "deepseek-v4-pro", "reasoning_effort": "max"}
+  },
+  "release_blockers": [
+    "Codeberg PR 3 must be merged into the official translation-toolkit main branch.",
+    "The official SourceHut mpi-translations main branch must point its toolkit submodule at that merged SHA.",
+    "Update both expected SHAs from official upstream and set release_ready only after fault-injection and end-to-end evidence passes."
+  ]
+}

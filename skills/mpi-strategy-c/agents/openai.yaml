@@ -1,0 +1,7 @@
+interface:
+  display_name: "MPI 方案 C 翻译"
+  short_description: "Audited Buddhist translation for documents and media"
+  brand_color: "#8A4B2A"
+  default_prompt: "Use $mpi-strategy-c to translate this file with the audited Flash → Sol → Pro workflow."
+policy:
+  allow_implicit_invocation: true

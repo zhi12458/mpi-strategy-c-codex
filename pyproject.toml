@@ -1,0 +1,8 @@
+[project]
+name = "mpi-strategy-c-codex"
+version = "0.1.0rc1"
+requires-python = ">=3.11"
+dependencies = ["keyring>=25,<27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
