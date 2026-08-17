@@ -20,8 +20,7 @@ class StrategyCError(RuntimeError):
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-LOCK_PATH = REPOSITORY_ROOT / "dependency-lock.json"
+LOCK_PATH = SKILL_DIR / "dependency-lock.json"
 READY_NAME = "READY.json"
 RECEIPTS_NAME = "tool-execution-receipts.jsonl"
 INSTRUCTION_RECEIPT_NAME = "instruction-receipt.json"
@@ -177,7 +176,7 @@ def verify_repo(path: Path, spec: dict, critical_hashes: dict[str, str] | None =
         files[relative] = digest
         if critical_hashes is not None and critical_hashes.get(relative) != digest:
             raise StrategyCError(f"critical file hash mismatch: {candidate}")
-    return {
+    result = {
         "absolute_path": str(path),
         "origin": origin,
         "git_sha": head,
@@ -185,6 +184,10 @@ def verify_repo(path: Path, spec: dict, critical_hashes: dict[str, str] | None =
         "clean_worktree": True,
         "critical_file_sha256": files,
     }
+    for key in ("compatibility_fork", "upstream_origin", "upstream_base_sha"):
+        if key in spec:
+            result[key] = spec[key]
+    return result
 
 
 def run_doctor(repo: Path, script: Path) -> tuple[int, bytes, bytes]:

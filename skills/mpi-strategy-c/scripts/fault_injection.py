@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
 import runtime
-from bootstrap import prepare_repositories
 from runtime import StrategyCError, atomic_json, sha256_file, verify_repo, verify_ready
 
 
@@ -59,11 +59,13 @@ def run_fault_tests(installed_root: Path) -> dict:
     original_lock_path = runtime.LOCK_PATH
     lock = runtime.load_lock()
     mpi_source = installed_root / "repos" / "mpi-translations"
-    toolkit_source = mpi_source / lock["translation_toolkit"]["submodule_path"]
     cases: list[dict] = []
     with tempfile.TemporaryDirectory(prefix="mpi-strategy-c-fault-") as directory:
         root = Path(directory).resolve()
-        mpi, toolkit = prepare_repositories(root, lock, mpi_source, toolkit_source)
+        mpi = root / "repos" / "mpi-translations"
+        mpi.parent.mkdir(parents=True)
+        shutil.copytree(mpi_source, mpi)
+        toolkit = mpi / lock["translation_toolkit"]["submodule_path"]
         temporary_ready(root, lock, mpi, toolkit)
         verify_ready(root, require_ready=False)
 

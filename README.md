@@ -8,13 +8,21 @@ translation/subtitle QA logic; those operations must come from the locked
 
 ## Current release state
 
-Pre-release and intentionally blocked. The Codeberg toolkit candidate is under
-[PR #3](https://codeberg.org/eastwind/translation-toolkit/pulls/3), and the MPI
-SourceHut candidate cannot be pushed by the current account. Therefore
-`dependency-lock.json` has `release_ready: false`, and production installation
-must refuse to write a ready installation.
+Ready through two verified compatibility forks:
 
-See `INSTALL_PROMPT.zh-CN.md` for the eventual one-message setup prompt.
+- [MPI compatibility fork](https://github.com/zhi12458/mpi-translations),
+  locked at `501e332f58245104a80d998dfa333a35fb6a4993`;
+- [translation-toolkit compatibility fork](https://github.com/zhi12458/translation-toolkit),
+  locked at `7077d962c065f85f70ad67c80daba63315279ee9`.
+
+They are not represented as official releases. `dependency-lock.json` also
+records the official SourceHut/Codeberg origins and the upstream base SHAs. The
+installer never follows a moving `main`: it checks out the two exact release
+SHAs, and the MPI checkout contains the toolkit as its real pinned Git
+submodule.
+
+See `INSTALL_PROMPT.zh-CN.md` for the customer one-message setup prompt and
+`CUSTOMER_PROMPTS.zh-CN.md` for normal document/audio/video requests.
 
 ## What is implemented
 
@@ -37,6 +45,6 @@ python -m pytest -q
 python skills/mpi-strategy-c/scripts/strategy_c.py doctor
 ```
 
-The second command is expected to say `BLOCKED` in this pre-release because
-the official upstream pair is not yet published. This is the intended safety
-behavior, not an installation error.
+The installer writes `ready: true` only after exact repository verification,
+both doctors, dependency fault injection, and a live non-private model smoke
+all pass on that customer's computer.

@@ -14,3 +14,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install pytest
       - run: python -m pytest -q
+  public-lock:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - if: runner.os == 'macOS'
+        run: brew install pandoc
+      - if: runner.os == 'Windows'
+        run: choco install pandoc --yes --no-progress
+      - run: python tests/verify_public_lock.py

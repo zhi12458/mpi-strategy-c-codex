@@ -1,7 +1,8 @@
 # Audit records
 
 `READY.json` is installation evidence. It binds the absolute MPI and toolkit
-paths, canonical origins, exact SHAs, clean status, critical-file hashes,
+paths, canonical compatibility-fork origins, exact SHAs, official-upstream
+origins and base SHAs, clean status, critical-file hashes,
 AGENTS hashes, both doctor results, the Whisper executable and model hashes,
 the disposable fault-test report, and the non-private live smoke report.
 

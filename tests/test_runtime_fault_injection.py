@@ -96,6 +96,9 @@ output.write_text(source.read_text(encoding='utf-8'), encoding='utf-8')
         "mpi_translations": {
             "origin": mpi_origin,
             "expected_sha": mpi_sha,
+            "compatibility_fork": True,
+            "upstream_origin": "https://example.invalid/mpi-upstream",
+            "upstream_base_sha": "1" * 40,
             "required_files": ["AGENTS.md", "scripts/doctor.py"],
         },
         "translation_toolkit": {
@@ -138,6 +141,9 @@ def test_valid_installation_generates_complete_instruction_receipt(installation,
     ready, mpi, toolkit = runtime.verify_ready()
     assert ready["ready"] is True
     assert mpi["doctor_exit_code"] == toolkit["doctor_exit_code"] == 0
+    assert mpi["compatibility_fork"] is True
+    assert mpi["upstream_origin"] == "https://example.invalid/mpi-upstream"
+    assert mpi["upstream_base_sha"] == "1" * 40
 
     receipt = runtime.begin_project(tmp_path / "project", "document")
 
@@ -209,7 +215,7 @@ def test_unreleased_lock_blocks_even_forged_ready(installation):
     write(installation["lock_path"], json.dumps(lock))
     with pytest.raises(runtime.StrategyCError, match="release lock"):
         runtime.verify_ready()
-    with pytest.raises(runtime.StrategyCError, match="official upstream"):
+    with pytest.raises(runtime.StrategyCError, match="release lock"):
         bootstrap.install(Path("missing.bin"), install_missing=False)
 
 

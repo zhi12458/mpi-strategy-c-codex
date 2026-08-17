@@ -83,11 +83,20 @@ def git_checked(command: tuple[str, ...], cwd: Path) -> None:
         raise StrategyCError(f"Git command failed: {' '.join(command[:3])}")
 
 
-def clone_locked(source: str, destination: Path, expected_sha: str, official_origin: str) -> None:
-    git_checked(("git", "-c", "core.autocrlf=false", "clone", "--no-checkout", source, str(destination)), destination.parent)
+def clone_locked(
+    source: str,
+    destination: Path,
+    expected_sha: str,
+    canonical_origin: str,
+    sparse_paths: tuple[str, ...] = (),
+) -> None:
+    git_checked(("git", "-c", "core.autocrlf=false", "clone", "--filter=blob:none", "--no-checkout", source, str(destination)), destination.parent)
     git_checked(("git", "-C", str(destination), "config", "core.autocrlf", "false"), destination.parent)
+    if sparse_paths:
+        git_checked(("git", "-C", str(destination), "sparse-checkout", "init", "--cone"), destination.parent)
+        git_checked(("git", "-C", str(destination), "sparse-checkout", "set", *sparse_paths), destination.parent)
     git_checked(("git", "-C", str(destination), "checkout", "--detach", expected_sha), destination.parent)
-    git_checked(("git", "-C", str(destination), "remote", "set-url", "origin", official_origin), destination.parent)
+    git_checked(("git", "-C", str(destination), "remote", "set-url", "origin", canonical_origin), destination.parent)
 
 
 def prepare_repositories(root: Path, lock: dict, candidate_mpi: Path | None, candidate_toolkit: Path | None) -> tuple[Path, Path]:
@@ -98,7 +107,13 @@ def prepare_repositories(root: Path, lock: dict, candidate_mpi: Path | None, can
     mpi = staging / "mpi-translations"
     mpi_spec = lock["mpi_translations"]
     toolkit_spec = lock["translation_toolkit"]
-    clone_locked(str(candidate_mpi or mpi_spec["origin"]), mpi, mpi_spec["expected_sha"], mpi_spec["origin"])
+    clone_locked(
+        str(candidate_mpi or mpi_spec["origin"]),
+        mpi,
+        mpi_spec["expected_sha"],
+        mpi_spec["origin"],
+        ("scripts", toolkit_spec["submodule_path"]),
+    )
     pointer = run(("git", "ls-tree", "HEAD", toolkit_spec["submodule_path"]), mpi)
     if pointer.returncode or toolkit_spec["expected_sha"] not in pointer.stdout.decode("utf-8", errors="replace"):
         raise StrategyCError("MPI commit does not point to the locked toolkit SHA")
@@ -110,7 +125,10 @@ def prepare_repositories(root: Path, lock: dict, candidate_mpi: Path | None, can
         git_checked(("git", "submodule", "absorbgitdirs"), mpi)
     else:
         git_checked(("git", "config", f"submodule.{toolkit_spec['submodule_path']}.url", toolkit_spec["origin"]), mpi)
-        git_checked(("git", "submodule", "update", "--init", "--checkout", toolkit_spec["submodule_path"]), mpi)
+        git_checked((
+            "git", "submodule", "update", "--init", "--checkout",
+            "--depth", "1", "--filter=blob:none", toolkit_spec["submodule_path"],
+        ), mpi)
         git_checked(("git", "-C", str(toolkit), "checkout", "--detach", toolkit_spec["expected_sha"]), mpi)
     verify_repo(mpi, mpi_spec)
     verify_repo(toolkit, toolkit_spec)
@@ -158,7 +176,7 @@ def install(
 ) -> dict:
     lock = load_lock()
     if not lock.get("release_ready") and not development_candidate:
-        raise StrategyCError("public installation blocked: official upstream locks are not released")
+        raise StrategyCError("public installation blocked: the verified release lock is not ready")
     root = managed_root()
     root.mkdir(parents=True, exist_ok=True)
     require_dependencies(install_missing)

@@ -8,8 +8,9 @@ python scripts/strategy_c.py install
 
 The command uses the repository `dependency-lock.json`, installs or verifies
 Git, Python 3.11+, Pandoc, FFmpeg, whisper.cpp, and Python keyring support,
-clones MPI over SourceHut HTTPS, initializes the real `toolkit` submodule with a
-local Codeberg HTTPS override, checks exact SHAs and origins, runs both doctors,
+clones the verified MPI compatibility fork over HTTPS, initializes its real
+`toolkit` submodule from the verified toolkit compatibility fork, checks exact
+SHAs and origins, records both official-upstream origins and base SHAs, runs both doctors,
 performs disposable dependency fault injection, and runs a non-private live
 smoke using V4 Flash `high`, V4 Pro `max`, the public toolkit fixture, strict
 mechanical QA, DOCX fidelity QA, and the document subtitle N/A gate. It writes
@@ -22,10 +23,11 @@ DeepSeek key in macOS Keychain or Windows Credential Manager. Use
 `select_whisper_model.py` to open the file picker and verify the exact model
 SHA-256.
 
-If the lock says `release_ready: false`, stop. That state means the candidate
-commits have not both reached their official upstream branches. A maintainer
-may use `--development-candidate` only for public-fixture tests; it writes
-`ready: false` and cannot unlock a real translation.
+The forks are explicitly compatibility releases, not official SourceHut or
+Codeberg releases. Do not follow either fork's moving `main`. If the lock says
+`release_ready: false`, stop. A maintainer may use `--development-candidate`
+only for public-fixture tests; it writes `ready: false` and cannot unlock a real
+translation.
 
 Repair never checks out a nearby latest commit. It fetches the exact locked
 commits into a temporary directory, validates them, and atomically replaces the

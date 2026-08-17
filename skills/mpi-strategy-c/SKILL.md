@@ -44,5 +44,7 @@ Codex-side extraction, terminology, Djot, DOCX, subtitle, or QA code.
    `pipeline_complete: true`. Every delivery remains marked `ai_draft` until a
    named human Buddhist/Dharma reviewer approves it.
 
-The public lock intentionally refuses production setup while either upstream
-candidate is unmerged. Do not bypass `release_ready: false` for an end user.
+The public lock uses explicitly labelled, verified compatibility forks because
+the required runtime has not been merged upstream. Use only the exact origins
+and SHAs in `dependency-lock.json`; never switch silently to official upstream
+`main`, fork `main`, or a nearby commit.
