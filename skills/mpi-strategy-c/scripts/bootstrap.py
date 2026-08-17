@@ -84,7 +84,8 @@ def git_checked(command: tuple[str, ...], cwd: Path) -> None:
 
 
 def clone_locked(source: str, destination: Path, expected_sha: str, official_origin: str) -> None:
-    git_checked(("git", "clone", "--no-checkout", source, str(destination)), destination.parent)
+    git_checked(("git", "-c", "core.autocrlf=false", "clone", "--no-checkout", source, str(destination)), destination.parent)
+    git_checked(("git", "-C", str(destination), "config", "core.autocrlf", "false"), destination.parent)
     git_checked(("git", "-C", str(destination), "checkout", "--detach", expected_sha), destination.parent)
     git_checked(("git", "-C", str(destination), "remote", "set-url", "origin", official_origin), destination.parent)
 

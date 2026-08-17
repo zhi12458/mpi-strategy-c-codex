@@ -40,6 +40,7 @@ def write(path: Path, text: str) -> None:
 
 def make_repo(path: Path, origin: str) -> str:
     command(path.parent, "git", "init", str(path))
+    command(path, "git", "config", "core.autocrlf", "false")
     command(path, "git", "remote", "add", "origin", origin)
     return origin
 
