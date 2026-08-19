@@ -38,6 +38,17 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
+def write_clear_term_decisions(project: Path) -> None:
+    source = project / "source.dj"
+    write(source, "原文\n")
+    runtime.atomic_json(project / "term-decisions.json", {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "items": [],
+    })
+    write(project / "term-map.yaml", '{"terms": []}\n')
+
+
 def make_repo(path: Path, origin: str) -> str:
     command(path.parent, "git", "init", str(path))
     command(path, "git", "config", "core.autocrlf", "false")
@@ -49,6 +60,60 @@ def commit(path: Path, message: str) -> str:
     command(path, "git", "add", "-A")
     command(path, "git", "commit", "-m", message)
     return command(path, "git", "rev-parse", "HEAD")
+
+
+def test_clone_locked_uses_independent_local_clone_flags(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    source.mkdir()
+    destination = tmp_path / "destination"
+    calls = []
+
+    def capture(arguments, cwd):
+        calls.append((arguments, cwd))
+
+    monkeypatch.setattr(bootstrap, "git_checked", capture)
+    bootstrap.clone_locked(
+        str(source), destination, "1" * 40,
+        "https://example.invalid/canonical.git",
+    )
+
+    clone = calls[0][0]
+    assert "--local" in clone
+    assert "--no-hardlinks" in clone
+    assert "--filter=blob:none" not in clone
+    assert calls[-1][0][-2:] == ("origin", "https://example.invalid/canonical.git")
+
+
+def test_clone_locked_keeps_partial_filter_for_https_sources(tmp_path, monkeypatch):
+    calls = []
+
+    def capture(arguments, cwd):
+        calls.append((arguments, cwd))
+
+    monkeypatch.setattr(bootstrap, "git_checked", capture)
+    bootstrap.clone_locked(
+        "https://example.invalid/source.git", tmp_path / "destination",
+        "1" * 40, "https://example.invalid/canonical.git",
+    )
+
+    clone = calls[0][0]
+    assert "--filter=blob:none" in clone
+    assert "--local" not in clone
+
+
+def test_disposable_parent_commit_changes_only_submodule_pointer(installation):
+    mpi = installation["mpi"]
+    toolkit = installation["toolkit"]
+    write(toolkit / "fault.txt", "fault\n")
+    toolkit_sha = commit(toolkit, "fault toolkit")
+
+    parent_sha = fault_injection.commit_submodule_pointer(
+        mpi, "toolkit", toolkit_sha, "point to fault toolkit",
+    )
+
+    assert command(mpi, "git", "rev-parse", "HEAD") == parent_sha
+    assert toolkit_sha in command(mpi, "git", "ls-tree", "HEAD", "toolkit")
+    assert command(mpi, "git", "status", "--porcelain=v1", "--untracked-files=all") == ""
 
 
 @pytest.fixture
@@ -113,7 +178,8 @@ output.write_text(source.read_text(encoding='utf-8'), encoding='utf-8')
         },
         "models": {
             "source_analysis": {"provider": "deepseek", "model": "deepseek-v4-flash", "reasoning_effort": "high"},
-            "translation": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
+            "translation": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "medium"},
+            "translation_fallback": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
             "review": {"provider": "deepseek", "model": "deepseek-v4-pro", "reasoning_effort": "max"},
         },
     }
@@ -240,6 +306,7 @@ def test_tool_call_is_receipted_with_repository_and_hashes(installation, tmp_pat
 def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
     project = tmp_path / "project"
     runtime.begin_project(project, "document")
+    write_clear_term_decisions(project)
     artifact = project / "bilingual.dj"
     write(artifact, "fresh\n")
     qa = {"status": "PASS", "checks": []}
@@ -263,6 +330,7 @@ def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
 def test_forged_old_qa_report_fails_freshness_chain(installation, tmp_path):
     project = tmp_path / "project"
     runtime.begin_project(project, "document")
+    write_clear_term_decisions(project)
     bilingual = project / "bilingual.dj"
     qa_path = project / "qa-report.json"
     subtitle_path = project / "subtitle-qa-report.json"
@@ -289,6 +357,184 @@ def test_forged_old_qa_report_fails_freshness_chain(installation, tmp_path):
 def test_secret_arguments_are_rejected():
     with pytest.raises(runtime.StrategyCError):
         runtime.reject_secret_arguments(["--api-key=sk-test"])
+
+
+def test_sol_medium_is_default_and_high_is_only_targeted_fallback(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    medium_output = project / "sol-draft.dj"
+    fallback_output = project / "sol-fallback-adjudication.json"
+    write(source, "原文\n")
+    write(medium_output, "English\n")
+    write(fallback_output, json.dumps({
+        "scope": "targeted_title_or_critical_major",
+        "status": "resolved",
+        "unresolved_findings": 0,
+    }))
+
+    receipt = strategy_c.record_model(
+        project, "sol_translation", "openai-codex", "gpt-5.6-sol", "medium",
+        "0" * 64, [source], [medium_output], None,
+    )
+    assert receipt["reasoning_effort"] == "medium"
+    with pytest.raises(runtime.StrategyCError, match="release lock"):
+        strategy_c.record_model(
+            project, "sol_translation", "openai-codex", "gpt-5.6-sol", "high",
+            "1" * 64, [source], [medium_output], None,
+        )
+    semantic_review = project / "semantic-review.json"
+    write(semantic_review, json.dumps({"status": "blocking", "blocking_findings": 1}))
+    runtime.append_receipt(project, {
+        "receipt_id": "pro_model_2",
+        "workflow_stage": "pro_model_2",
+        "exit_code": 0,
+        "outputs": [runtime.file_record(semantic_review)],
+    })
+    fallback = strategy_c.record_model(
+        project, "sol_fallback", "openai-codex", "gpt-5.6-sol", "high",
+        "2" * 64, [source, semantic_review], [fallback_output], None,
+    )
+    assert fallback["workflow_stage"] == "sol_fallback"
+
+
+def test_sol_high_fallback_is_rejected_before_blocking_second_review(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    output = project / "sol-fallback-adjudication.json"
+    write(source, "原文\n")
+    write(output, json.dumps({"scope": "targeted_title_or_critical_major", "status": "resolved", "unresolved_findings": 0}))
+    with pytest.raises(runtime.StrategyCError, match="completed second Pro review"):
+        strategy_c.record_model(
+            project, "sol_fallback", "openai-codex", "gpt-5.6-sol", "high",
+            "3" * 64, [source], [output], None,
+        )
+
+
+def test_fallback_resolution_is_bound_to_receipted_artifact(installation, tmp_path):
+    project = tmp_path / "project"
+    path = project / "sol-fallback-adjudication.json"
+    write(path, json.dumps({
+        "scope": "targeted_title_or_critical_major",
+        "status": "resolved",
+        "unresolved_findings": 0,
+    }))
+    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is False
+    runtime.append_receipt(project, {
+        "receipt_id": "fallback",
+        "workflow_stage": "sol_fallback",
+        "exit_code": 0,
+        "outputs": [runtime.file_record(path)],
+    })
+    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is True
+    write(path, json.dumps({
+        "scope": "targeted_title_or_critical_major",
+        "status": "needs_human",
+        "unresolved_findings": 1,
+    }))
+    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is False
+
+
+def test_term_decisions_accept_mpi_authority_and_detect_stale_context(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    term_map = project / "term-map.yaml"
+    decisions = project / "term-decisions.json"
+    write(source, "三轮体空\n品牌不断被贬值\n")
+    write(term_map, json.dumps({"terms": [{
+        "source": "三轮体空",
+        "preferred": "the emptiness of the three aspects",
+    }]}, ensure_ascii=False) + "\n")
+    runtime.atomic_json(decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "items": [{
+            "source_term": "三轮体空",
+            "candidates": ["the emptiness of the three aspects", "threefold emptiness"],
+            "locations": [{
+                "line": 1,
+                "source_text_sha256": runtime.sha256_bytes("三轮体空".encode("utf-8")),
+            }],
+            "trigger": "high_risk",
+            "mpi_hits": [{"source": "DoT定稿", "zh": "三轮体空", "en": "the emptiness of the three aspects", "loc": "test"}],
+            "external_evidence": [],
+            "selected": "the emptiness of the three aspects",
+            "rationale": "Use the project-final rendering without adding an explanatory gloss.",
+            "confidence": "high",
+            "scope": "all occurrences",
+            "resolution_basis": "mpi_authoritative",
+            "status": "frozen",
+        }],
+    })
+
+    receipt = strategy_c.record_term_decisions(project, source, decisions, term_map)
+    assert receipt["summary"]["frozen_count"] == 1
+    write(source, "三轮体空（改）\n品牌不断被贬值\n")
+    with pytest.raises(runtime.StrategyCError, match="source SHA-256 is stale"):
+        strategy_c.validate_term_decisions(source, decisions)
+
+
+def test_non_mpi_frozen_term_requires_admissible_web_evidence(installation, tmp_path):
+    source = tmp_path / "source.dj"
+    decisions = tmp_path / "term-decisions.json"
+    write(source, "大道大商\n")
+    base_item = {
+        "source_term": "大商",
+        "candidates": ["Great Entrepreneurs", "Great Business"],
+        "locations": [{"line": 1, "source_text_sha256": runtime.sha256_bytes("大道大商".encode("utf-8"))}],
+        "trigger": "context_ambiguity",
+        "mpi_hits": [],
+        "external_evidence": [],
+        "selected": "Great Entrepreneurs",
+        "rationale": "Candidate semantic head based on this article.",
+        "confidence": "high",
+        "scope": "title system",
+        "resolution_basis": "context_and_external_evidence",
+        "status": "frozen",
+    }
+    runtime.atomic_json(decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "items": [base_item],
+    })
+    with pytest.raises(runtime.StrategyCError, match="requires external evidence"):
+        strategy_c.validate_term_decisions(source, decisions)
+
+    base_item["external_evidence"] = [{
+        "source_type": "cbeta",
+        "url": "https://cbeta.org/",
+        "support": "Canonical context checked; it does not independently settle the coined title.",
+        "accepted": False,
+    }]
+    base_item["confidence"] = "low"
+    base_item["status"] = "human_review"
+    runtime.atomic_json(decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "items": [base_item],
+    })
+    assert strategy_c.validate_term_decisions(source, decisions)["human_review_count"] == 1
+
+
+def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    analysis = project / "source-analysis.json"
+    write(source, "原文\n")
+    runtime.atomic_json(analysis, {
+        "source_sha256": runtime.sha256_file(source),
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "analyses": [],
+    })
+    receipt = strategy_c.reuse_source_analysis(project, source, analysis)
+    assert receipt["workflow_stage"] == "flash_analysis_reuse"
+    write(source, "原文已改\n")
+    with pytest.raises(runtime.StrategyCError, match="source SHA-256 changed"):
+        strategy_c.reuse_source_analysis(project, source, analysis)
 
 
 def test_disposable_fault_suite_restores_real_installation(installation):

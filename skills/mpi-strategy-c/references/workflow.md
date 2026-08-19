@@ -9,11 +9,16 @@ under the managed `projects` directory and preserve the original input.
 3. Analyze only the frozen Chinese to create `term-candidates.json`; this is a
    candidate list, not a glossary. Run `build-term-map.py` as stage
    `terminology`. It invokes the MPI database and writes the term map and search
-   receipts. Resolve every `needs_human` item with the user.
+   receipts. Follow `terminology-verification.md` for only the missing,
+   conflicting, ambiguous, high-risk, or model-flagged items. Write
+   `term-decisions.json`, then record it with `record-term-decisions`. Resolve
+   every `human_review` item with the user before drafting.
 4. Run toolkit `deepseek-source-analysis.py` as `flash_analysis`. It uses V4
-   Flash, reasoning `high`, and must execute before `target.dj` exists.
+   Flash, reasoning `high`, and must execute before `target.dj` exists. If a
+   prior `source-analysis.json` has the exact current source SHA-256, use
+   `reuse-source-analysis` instead of calling Flash again.
 5. Read the frozen source, term map, MPI instructions, and source analysis.
-   Draft aligned English to `sol-draft.dj` using GPT-5.6-Sol `high`. Do not
+   Draft aligned English to `sol-draft.dj` using GPT-5.6-Sol `medium`. Do not
    imitate English phrasing from another model. Record the model event, then run
    toolkit `freeze-target.py` as `target_freeze`.
 6. Run `gen-bilingual.py` as `bilingual_1`; run `deepseek-review.py` with
@@ -21,8 +26,10 @@ under the managed `projects` directory and preserve the original input.
    Pro.
 7. Sol validates and applies only sound findings to `sol-revised.dj`; run
    `freeze-target.py` as `target_refreeze`, regenerate as `bilingual_final`, and
-   run Pro again as `pro_review_2`. Stop for any remaining critical/major
-   blocker.
+   run Pro again as `pro_review_2`. If critical/major blockers remain, use
+   GPT-5.6-Sol `high` only on those findings and record the output as
+   `sol_fallback`. If `sol-fallback-adjudication.json` still reports an
+   unresolved item, stop for human judgment. Do not retranslate the full text.
 8. Run `check-translation.py PROJECT --strict --json --output qa-report.json`
    as `translation_qa`.
 9. Run `dj2docx.py` twice as `target_docx` and `bilingual_docx`.
@@ -31,7 +38,8 @@ under the managed `projects` directory and preserve the original input.
 11. Run `check-subtitles.py PROJECT --not-applicable --output
     subtitle-qa-report.json` as `subtitle_na`.
 12. Run `finalize --input-type document`. Deliver source, target, bilingual,
-    both DOCX files, findings, QA, receipts, and MANIFEST.
+    both DOCX files, term decisions and evidence, findings, QA, receipts, and
+    MANIFEST.
 
 Do not write or edit `source.dj`, `target.dj`, `bilingual.dj`, term map, DOCX,
 or QA reports with a substitute tool. Codex may write the intermediate Sol

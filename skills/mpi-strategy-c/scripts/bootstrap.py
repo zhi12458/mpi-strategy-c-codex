@@ -90,7 +90,21 @@ def clone_locked(
     canonical_origin: str,
     sparse_paths: tuple[str, ...] = (),
 ) -> None:
-    git_checked(("git", "-c", "core.autocrlf=false", "clone", "--filter=blob:none", "--no-checkout", source, str(destination)), destination.parent)
+    local_source = Path(source).expanduser()
+    if local_source.exists():
+        # A partial clone from a submodule working tree can recursively fetch
+        # from its own gitdir and deadlock. Make an independent local clone;
+        # later SHA and canonical-origin checks remain unchanged.
+        git_checked((
+            "git", "-c", "core.autocrlf=false", "clone", "--local",
+            "--no-hardlinks", "--no-checkout", str(local_source.resolve()),
+            str(destination),
+        ), destination.parent)
+    else:
+        git_checked((
+            "git", "-c", "core.autocrlf=false", "clone", "--filter=blob:none",
+            "--no-checkout", source, str(destination),
+        ), destination.parent)
     git_checked(("git", "-C", str(destination), "config", "core.autocrlf", "false"), destination.parent)
     if sparse_paths:
         git_checked(("git", "-C", str(destination), "sparse-checkout", "init", "--cone"), destination.parent)

@@ -36,3 +36,8 @@ def test_public_release_uses_exact_verified_compatibility_forks():
 
     assert lock["compatibility_policy"]["automatic_main_updates"] is False
     assert lock["compatibility_policy"]["exact_sha_required"] is True
+    assert lock["skill_version"] == "0.2.0"
+    assert lock["models"]["translation"]["reasoning_effort"] == "medium"
+    assert lock["models"]["translation_fallback"]["reasoning_effort"] == "high"
+    assert lock["model_policy"]["translation_default"] == "provisional"
+    assert lock["model_policy"]["additional_cross_genre_tests"] == 2

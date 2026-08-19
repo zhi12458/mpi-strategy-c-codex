@@ -24,7 +24,7 @@
 
 8. 验证 Codex 已能自动识别以下自然语言请求：“请翻译这个文件”“请翻译这个音频”“请整理并翻译这个视频，生成双语字幕”“继续刚才的翻译”。以后每个翻译项目都必须重新预检并实际读取 MPI 与 toolkit 规范，通过审计执行器真实调用锁定 toolkit 做源稿提取、MPI 术语检索、term-map、source/target/bilingual 管理、机械检查、DOCX 生成与质量检查，以及适用时的字幕生成与检查；不得用技能内置替代逻辑绕过。
 
-方案 C 的模型职责固定为：DeepSeek V4 Flash high 只做 toolkit 冻结中文的源义分析；当前 Codex 的 GPT-5.6-Sol high 独立完成英文；DeepSeek V4 Pro max 在看不到 Flash 分析的条件下做两轮双语审核。第二轮仍有 critical/major 问题时必须停下请人工判断。所有交付标记为 AI draft，并附 instruction-receipt.json、tool-execution-receipts.jsonl 和 MANIFEST.json；只有收据与哈希链齐全时 pipeline_complete 才能为 true。
+方案 C 的模型职责固定为：DeepSeek V4 Flash high 只做 toolkit 冻结中文的源义分析；当前 Codex 的 GPT-5.6-Sol medium 独立完成英文；DeepSeek V4 Pro max 在看不到 Flash 分析的条件下做两轮双语审核。仅当第二轮仍有标题或 critical/major 问题时，才允许 GPT-5.6-Sol high 做定向裁决；仍未解决则停下请人工判断。疑难术语先查 MPI 术语库，只在缺项、冲突、语境歧义或高风险时查权威在线来源，并写入 term-decisions.json。所有交付标记为 AI draft，并附 instruction-receipt.json、tool-execution-receipts.jsonl 和 MANIFEST.json；只有收据与哈希链齐全时 pipeline_complete 才能为 true。
 ```
 
 安装器锁定的是发布 SHA，而不是“永远使用 fork main”。维护者以后如发布新锁，客户应通过技能的升级流程重新验证，不能手动 `git pull` 后继续使用旧 READY。

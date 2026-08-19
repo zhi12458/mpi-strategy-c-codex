@@ -32,4 +32,4 @@
 请审计这个翻译项目是否真正调用了锁定的 mpi-translations 和 translation-toolkit。核对 origin、SHA、规范读取收据、每个强制脚本收据和最终哈希链；不要重新翻译。请列出缺失或失效的证据，并说明 pipeline_complete 是否可信。
 ```
 
-客户无需在日常提示中重复模型名称。技能会固定执行 Flash high → GPT-5.6-Sol high → Pro max；如果当前 Codex 不是 GPT-5.6-Sol high，流程会在产生译稿前停止并提示切换。
+客户无需在日常提示中重复模型名称。技能会固定执行 Flash high → GPT-5.6-Sol medium → Pro max；如果当前 Codex 不是 GPT-5.6-Sol medium，流程会在产生译稿前停止并提示切换。Sol high 只用于第二轮后仍未解决的标题或 critical/major 定向裁决。

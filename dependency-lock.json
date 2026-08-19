@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "skill_version": "0.1.0",
+  "skill_version": "0.2.0",
   "release_ready": true,
   "release_status": "verified_compatibility_forks",
   "mpi_translations": {
     "origin": "https://github.com/zhi12458/mpi-translations.git",
-    "expected_sha": "501e332f58245104a80d998dfa333a35fb6a4993",
+    "expected_sha": "f3e7ad8868954b2dbc9258ef179394a1e26210e9",
     "compatibility_fork": true,
     "upstream_origin": "https://git.sr.ht/~iacore/mpi-translations/",
     "upstream_base_sha": "4a6d4af31c89d3ce43d010550e6c7090587e5ebf",
@@ -13,7 +13,7 @@
   },
   "translation_toolkit": {
     "origin": "https://github.com/zhi12458/translation-toolkit.git",
-    "expected_sha": "7077d962c065f85f70ad67c80daba63315279ee9",
+    "expected_sha": "2805cc742100b1bf294780572c2f65a1ab31567a",
     "compatibility_fork": true,
     "upstream_origin": "https://codeberg.org/eastwind/translation-toolkit.git",
     "upstream_base_sha": "07ebbc90c60c32d9078cceac02d0d502d37b6c0c",
@@ -46,8 +46,16 @@
   },
   "models": {
     "source_analysis": {"provider": "deepseek", "model": "deepseek-v4-flash", "reasoning_effort": "high"},
-    "translation": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
+    "translation": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "medium"},
+    "translation_fallback": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
     "review": {"provider": "deepseek", "model": "deepseek-v4-pro", "reasoning_effort": "max"}
+  },
+  "model_policy": {
+    "translation_default": "provisional",
+    "fallback_scope": "targeted_title_or_critical_major",
+    "additional_cross_genre_tests": 2,
+    "promotion_requires_additional_wins": 1,
+    "promotion_requires_average_blockers_no_worse": true
   },
   "compatibility_policy": {
     "official_upstreams_unchanged": true,

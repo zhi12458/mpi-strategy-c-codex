@@ -1,6 +1,6 @@
 ---
 name: mpi-strategy-c
-description: Install, repair, or run the audited MPI Strategy C Chinese-to-English Buddhist translation workflow for DOCX, TXT, Markdown, Djot, audio, or video. Use when the user says to translate, organize and translate, make bilingual files, or create bilingual subtitles. Enforces locked mpi-translations and translation-toolkit dependencies, whisper-medium-2512-ft-best transcription, Flash source analysis, GPT-5.6-Sol English drafting, V4 Pro review, toolkit QA, and complete receipts.
+description: Install, repair, or run the audited MPI Strategy C Chinese-to-English Buddhist translation workflow for DOCX, TXT, Markdown, Djot, audio, or video. Use when the user says to translate, organize and translate, make bilingual files, or create bilingual subtitles. Enforces locked mpi-translations and translation-toolkit dependencies, uncertainty-triggered terminology research, Flash source analysis, GPT-5.6-Sol English drafting, V4 Pro review, toolkit QA, and complete receipts.
 ---
 
 # MPI Strategy C
@@ -15,6 +15,9 @@ Codex-side extraction, terminology, Djot, DOCX, subtitle, or QA code.
   contains `ready: true`.
 - For DOCX/TXT/Markdown/Djot translation, read `references/workflow.md` and use
   its document route.
+- Before freezing terminology, read `references/terminology-verification.md`.
+  It defines when web research is required, which sources are admissible, and
+  the auditable `term-decisions.json` contract.
 - For audio/video, also read `references/media.md`. Use only the selected,
   hash-verified `whisper-medium-2512-ft-best-ggml.bin`; do not use a cloud ASR or
   another Whisper model.
@@ -29,8 +32,11 @@ Codex-side extraction, terminology, Djot, DOCX, subtitle, or QA code.
    If doctor fails, run `strategy_c.py repair` before doing anything else. The
    repair must fetch the exact lock into a temporary directory and pass every
    gate; if repair fails, stop without a model call.
-2. Confirm this Codex task is using GPT-5.6-Sol with reasoning `high`. If that
-   cannot be established, stop and tell the user how to select it.
+2. Confirm this Codex task is using GPT-5.6-Sol with reasoning `medium`. This is
+   the provisional Strategy C default. Reasoning `high` is allowed only for a
+   targeted title or critical/major adjudication after the second Pro review;
+   it must be recorded as `sol_fallback`, never as the ordinary translation.
+   Read `references/model-policy.md` for the promotion and comparison policy.
 3. Read the current task's `instruction-receipt.json` inputs yourself: locked
    MPI `AGENTS.md`, toolkit `AGENTS.md`, and the three required MPI skills.
 4. Run every toolkit entry point through `strategy_c.py run-tool`. Never invoke
@@ -38,8 +44,10 @@ Codex-side extraction, terminology, Djot, DOCX, subtitle, or QA code.
 5. Flash reads only toolkit-frozen Chinese, term map, and MPI metadata. Pro
    reads Chinese, English, and term map but never Flash analysis. Sol alone
    decides English wording.
-6. If terminology is unresolved or the second Pro review contains a critical
-   or major blocker, stop for human judgment. Never conceal or average it away.
+6. If terminology is unresolved, stop for human judgment. If the second Pro
+   review contains a critical or major blocker, use Sol high only for targeted
+   adjudication. Stop for human judgment if that adjudication remains
+   unresolved. Never conceal or average disagreement away.
 7. Run `strategy_c.py finalize`; report completion only if it writes
    `pipeline_complete: true`. Every delivery remains marked `ai_draft` until a
    named human Buddhist/Dharma reviewer approves it.

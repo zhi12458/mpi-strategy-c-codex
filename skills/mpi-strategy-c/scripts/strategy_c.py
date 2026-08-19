@@ -54,13 +54,18 @@ STAGE_SCRIPTS = {
     "subtitle_qa": {"check-subtitles.py"},
 }
 DOCUMENT_STAGES = {
-    "source_extraction", "terminology", "terminology_search", "flash_analysis", "target_freeze",
+    "source_extraction", "terminology", "terminology_search", "terminology_decisions", "flash_analysis", "target_freeze",
     "bilingual_1", "pro_review_1", "target_refreeze", "bilingual_final",
     "pro_review_2", "translation_qa", "target_docx", "bilingual_docx",
     "target_docx_qa", "bilingual_docx_qa", "subtitle_na",
 }
 MEDIA_STAGES = (DOCUMENT_STAGES - {"subtitle_na"}) | {"media_transcription", "subtitle_generation", "subtitle_qa"}
-MODEL_STAGES = {"flash_model", "sol_translation", "pro_model_1", "sol_revision", "pro_model_2"}
+REQUIRED_MODEL_STAGES = {"flash_model", "sol_translation", "pro_model_1", "sol_revision", "pro_model_2"}
+OPTIONAL_MODEL_STAGES = {"sol_fallback"}
+MODEL_STAGES = REQUIRED_MODEL_STAGES | OPTIONAL_MODEL_STAGES
+TERM_TRIGGERS = {"mpi_missing", "mpi_conflict", "context_ambiguity", "high_risk", "model_uncertain"}
+MPI_TERM_SOURCES = {"DoT定稿", "内部特色词", "佛教术语", "经论名"}
+EXTERNAL_TERM_SOURCES = {"cbeta", "bdk", "nti_reader", "84000", "academic", "university", "buddhist_institution"}
 
 
 def safe_receipt_base(stage: str, started: float, command: list[str], cwd: Path) -> dict:
@@ -189,10 +194,29 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
     if stage not in MODEL_STAGES or len(prompt_sha256) != 64:
         raise StrategyCError("invalid model stage or prompt SHA-256")
     lock = load_lock()["models"]
-    role = "source_analysis" if stage == "flash_model" else "review" if stage.startswith("pro_model") else "translation"
+    if stage == "flash_model":
+        role = "source_analysis"
+    elif stage.startswith("pro_model"):
+        role = "review"
+    elif stage == "sol_fallback":
+        role = "translation_fallback"
+    else:
+        role = "translation"
     expected = lock[role]
     if (provider, model, effort) != (expected["provider"], expected["model"], expected["reasoning_effort"]):
         raise StrategyCError("model identity or reasoning effort does not match the release lock")
+    if stage == "sol_fallback":
+        successful = {item.get("workflow_stage") for item in read_receipts(project) if item.get("exit_code", 0) == 0}
+        second_review = project / "semantic-review.json"
+        if "pro_model_2" not in successful or not second_review.is_file():
+            raise StrategyCError("Sol high fallback requires a completed second Pro review")
+        certificate = load_json(second_review)
+        blocking = certificate.get("status") == "blocking" or int(certificate.get("blocking_findings", 0)) > 0
+        if not blocking:
+            raise StrategyCError("Sol high fallback is allowed only for remaining critical/major blockers")
+        resolved_inputs = {path.expanduser().resolve() for path in inputs}
+        if second_review.resolve() not in resolved_inputs:
+            raise StrategyCError("Sol high fallback must be bound to semantic-review.json")
     raw_metadata = load_json(metadata) if metadata else {}
     allowed_metadata = {
         key: raw_metadata.get(key)
@@ -217,6 +241,194 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
     }
     append_receipt(project, receipt)
     return receipt
+
+
+def source_text_sha256(lines: list[str], line_number: int) -> str:
+    if line_number < 1 or line_number > len(lines):
+        raise StrategyCError(f"term-decision line is outside source.dj: {line_number}")
+    return sha256_bytes(lines[line_number - 1].encode("utf-8"))
+
+
+def validate_term_decisions(source: Path, decisions: Path) -> dict:
+    source = source.expanduser().resolve()
+    decisions = decisions.expanduser().resolve()
+    value = load_json(decisions)
+    if value.get("schema_version") != 1:
+        raise StrategyCError("term-decisions schema_version must be 1")
+    current_source_hash = sha256_file(source)
+    if value.get("source_sha256") != current_source_hash:
+        raise StrategyCError("term-decisions source SHA-256 is stale")
+    try:
+        lines = source.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise StrategyCError(f"could not read frozen source: {source}") from exc
+    items = value.get("items")
+    if not isinstance(items, list):
+        raise StrategyCError("term-decisions items must be an array")
+    frozen = []
+    human_review = []
+    seen: set[tuple[str, tuple[int, ...]]] = set()
+    for index, item in enumerate(items, start=1):
+        if not isinstance(item, dict):
+            raise StrategyCError(f"term-decisions item {index} must be an object")
+        source_term = item.get("source_term")
+        if not isinstance(source_term, str) or not source_term.strip():
+            raise StrategyCError(f"term-decisions item {index} has no source_term")
+        trigger = item.get("trigger")
+        if trigger not in TERM_TRIGGERS:
+            raise StrategyCError(f"term-decisions item {index} has an invalid trigger")
+        candidates = item.get("candidates")
+        if not isinstance(candidates, list) or not candidates or not all(
+            isinstance(candidate, str) and candidate.strip() for candidate in candidates
+        ):
+            raise StrategyCError(f"term-decisions item {index} has no candidate renderings")
+        locations = item.get("locations")
+        if not isinstance(locations, list) or not locations:
+            raise StrategyCError(f"term-decisions item {index} has no source locations")
+        line_numbers = []
+        for location in locations:
+            if not isinstance(location, dict) or not isinstance(location.get("line"), int):
+                raise StrategyCError(f"term-decisions item {index} has an invalid source location")
+            line_number = location["line"]
+            line_numbers.append(line_number)
+            if location.get("source_text_sha256") != source_text_sha256(lines, line_number):
+                raise StrategyCError(f"term-decisions item {index} has stale context at line {line_number}")
+        identity = (source_term, tuple(sorted(line_numbers)))
+        if identity in seen:
+            raise StrategyCError(f"duplicate term-decision for {source_term} at {line_numbers}")
+        seen.add(identity)
+        external_evidence = item.get("external_evidence", [])
+        if not isinstance(external_evidence, list):
+            raise StrategyCError(f"term-decisions item {index} external_evidence must be an array")
+        for evidence in external_evidence:
+            if not isinstance(evidence, dict) or evidence.get("source_type") not in EXTERNAL_TERM_SOURCES:
+                raise StrategyCError(f"term-decisions item {index} has inadmissible external evidence")
+            url = evidence.get("url")
+            if not isinstance(url, str) or not url.startswith(("https://", "http://")):
+                raise StrategyCError(f"term-decisions item {index} has an invalid evidence URL")
+            if not isinstance(evidence.get("support"), str) or not evidence["support"].strip():
+                raise StrategyCError(f"term-decisions item {index} has evidence without a support note")
+        for field in ("rationale", "scope", "resolution_basis"):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                raise StrategyCError(f"term-decisions item {index} is missing {field}")
+        confidence = item.get("confidence")
+        if confidence not in {"high", "medium", "low"}:
+            raise StrategyCError(f"term-decisions item {index} has invalid confidence")
+        status = item.get("status")
+        if status == "human_review":
+            if confidence == "high":
+                raise StrategyCError(f"term-decisions item {index} cannot be high-confidence human_review")
+            human_review.append({"source_term": source_term, "lines": line_numbers})
+            continue
+        if status != "frozen" or confidence != "high":
+            raise StrategyCError(f"term-decisions item {index} must be high-confidence frozen or human_review")
+        if not isinstance(item.get("selected"), str) or not item["selected"].strip():
+            raise StrategyCError(f"term-decisions item {index} is missing selected")
+        if item["resolution_basis"] == "mpi_authoritative":
+            mpi_hits = item.get("mpi_hits")
+            if not isinstance(mpi_hits, list) or not any(
+                isinstance(hit, dict) and hit.get("source") in MPI_TERM_SOURCES for hit in mpi_hits
+            ):
+                raise StrategyCError(f"term-decisions item {index} lacks an authoritative MPI hit")
+        elif not item.get("external_evidence"):
+            raise StrategyCError(f"term-decisions item {index} requires external evidence before freezing")
+        frozen.append({"source_term": source_term, "selected": item["selected"], "lines": line_numbers})
+    return {
+        "source_sha256": current_source_hash,
+        "item_count": len(items),
+        "frozen_count": len(frozen),
+        "human_review_count": len(human_review),
+        "frozen": frozen,
+        "human_review": human_review,
+    }
+
+
+def validate_frozen_terms_in_map(term_map: Path, summary: dict) -> None:
+    value = load_json(term_map)
+    terms = value.get("terms")
+    if not isinstance(terms, list):
+        raise StrategyCError("term map must contain a terms array")
+    indexed = {
+        item.get("source"): item.get("preferred")
+        for item in terms
+        if isinstance(item, dict) and isinstance(item.get("source"), str)
+    }
+    missing = [
+        item["source_term"] for item in summary["frozen"]
+        if indexed.get(item["source_term"]) != item["selected"]
+    ]
+    if missing:
+        raise StrategyCError(f"frozen term decisions are missing from term map: {', '.join(missing)}")
+
+
+def record_term_decisions(project: Path, source: Path, decisions: Path, term_map: Path) -> dict:
+    verify_ready()
+    instruction = validate_instruction_receipt(project)
+    summary = validate_term_decisions(source, decisions)
+    validate_frozen_terms_in_map(term_map, summary)
+    receipt = {
+        "schema_version": 1,
+        "receipt_id": str(uuid.uuid4()),
+        "workflow_stage": "terminology_decisions",
+        "kind": "terminology_evidence",
+        "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "instruction_receipt_id": instruction["receipt_id"],
+        "inputs": file_hashes([source, term_map]),
+        "outputs": file_hashes([decisions]),
+        "summary": summary,
+        "exit_code": 0,
+    }
+    append_receipt(project, receipt)
+    return receipt
+
+
+def reuse_source_analysis(project: Path, source: Path, analysis: Path) -> dict:
+    verify_ready()
+    instruction = validate_instruction_receipt(project)
+    value = load_json(analysis)
+    expected = load_lock()["models"]["source_analysis"]
+    if value.get("source_sha256") != sha256_file(source):
+        raise StrategyCError("source-analysis cannot be reused because source SHA-256 changed")
+    if value.get("model") != expected["model"] or value.get("reasoning_effort") != expected["reasoning_effort"]:
+        raise StrategyCError("source-analysis model identity does not match the release lock")
+    receipt = {
+        "schema_version": 1,
+        "receipt_id": str(uuid.uuid4()),
+        "workflow_stage": "flash_analysis_reuse",
+        "kind": "reused_model_artifact",
+        "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "instruction_receipt_id": instruction["receipt_id"],
+        "inputs": file_hashes([source, analysis]),
+        "outputs": file_hashes([analysis]),
+        "exit_code": 0,
+    }
+    append_receipt(project, receipt)
+    return receipt
+
+
+def fallback_resolved(project: Path, successful: set[str]) -> bool:
+    if "sol_fallback" not in successful:
+        return False
+    path = project / "sol-fallback-adjudication.json"
+    if not path.is_file():
+        return False
+    current_hash = sha256_file(path)
+    receipted = any(
+        receipt.get("workflow_stage") == "sol_fallback"
+        and any(
+            output.get("absolute_path") == str(path.resolve()) and output.get("sha256") == current_hash
+            for output in receipt.get("outputs", [])
+        )
+        for receipt in read_receipts(project)
+    )
+    if not receipted:
+        return False
+    value = load_json(path)
+    return (
+        value.get("scope") == "targeted_title_or_critical_major"
+        and value.get("status") == "resolved"
+        and value.get("unresolved_findings") == 0
+    )
 
 
 def run_media(project: Path, media: Path) -> dict:
@@ -269,7 +481,9 @@ def finalize(project: Path, input_type: str) -> dict:
     instruction = validate_instruction_receipt(project)
     receipts = read_receipts(project)
     successful = {item.get("workflow_stage") for item in receipts if item.get("exit_code", 0) == 0}
-    required = (DOCUMENT_STAGES if input_type == "document" else MEDIA_STAGES) | MODEL_STAGES
+    required = (DOCUMENT_STAGES if input_type == "document" else MEDIA_STAGES) | REQUIRED_MODEL_STAGES
+    if "flash_analysis_reuse" in successful:
+        required -= {"flash_analysis", "flash_model"}
     missing = sorted(required - successful)
     current_artifacts: dict[str, dict] = {}
     stale = []
@@ -292,8 +506,18 @@ def finalize(project: Path, input_type: str) -> dict:
     if second_review.is_file():
         certificate = load_json(second_review)
         blockers = certificate.get("status") == "blocking" or int(certificate.get("blocking_findings", 0)) > 0
-    pipeline_complete = not missing and not stale and not qa_failures and not blockers
-    status = "needs_human" if blockers else "ai_draft" if pipeline_complete else "blocked"
+    fallback_cleared = blockers and fallback_resolved(project, successful)
+    unresolved_review_blockers = blockers and not fallback_cleared
+    term_validation_error = None
+    term_summary = None
+    try:
+        term_summary = validate_term_decisions(project / "source.dj", project / "term-decisions.json")
+        validate_frozen_terms_in_map(project / "term-map.yaml", term_summary)
+    except StrategyCError as exc:
+        term_validation_error = str(exc)
+    unresolved_terms = bool(term_validation_error or (term_summary and term_summary["human_review_count"]))
+    pipeline_complete = not missing and not stale and not qa_failures and not unresolved_review_blockers and not unresolved_terms
+    status = "needs_human" if unresolved_review_blockers or unresolved_terms else "ai_draft" if pipeline_complete else "blocked"
     manifest = {
         "schema_version": 1,
         "pipeline_complete": pipeline_complete,
@@ -310,7 +534,10 @@ def finalize(project: Path, input_type: str) -> dict:
         "missing_stages": missing,
         "stale_or_missing_artifacts": sorted(set(stale)),
         "qa_failures": qa_failures,
-        "remaining_review_blockers": blockers,
+        "remaining_review_blockers": unresolved_review_blockers,
+        "sol_high_fallback_cleared": fallback_cleared,
+        "term_decisions": term_summary,
+        "term_decisions_error": term_validation_error,
         "transcription_ambiguities": load_json(project / "transcription-ambiguities.json").get("items", []) if (project / "transcription-ambiguities.json").is_file() else [],
         "human_approval": None,
     }
@@ -357,6 +584,15 @@ def parser() -> argparse.ArgumentParser:
     model.add_argument("--input", type=Path, action="append", default=[])
     model.add_argument("--output", type=Path, action="append", default=[])
     model.add_argument("--metadata", type=Path)
+    terms = sub.add_parser("record-term-decisions")
+    terms.add_argument("--project", type=Path, required=True)
+    terms.add_argument("--source", type=Path, required=True)
+    terms.add_argument("--decisions", type=Path, required=True)
+    terms.add_argument("--term-map", type=Path, required=True)
+    reuse = sub.add_parser("reuse-source-analysis")
+    reuse.add_argument("--project", type=Path, required=True)
+    reuse.add_argument("--source", type=Path, required=True)
+    reuse.add_argument("--analysis", type=Path, required=True)
     final = sub.add_parser("finalize")
     final.add_argument("--project", type=Path, required=True)
     final.add_argument("--input-type", choices=("document", "media"), required=True)
@@ -387,6 +623,10 @@ def main() -> int:
             value = run_media(args.project.resolve(), args.media.resolve())
         elif args.command == "record-model":
             value = record_model(args.project.resolve(), args.stage, args.provider, args.model, args.effort, args.prompt_sha256, args.input, args.output, args.metadata)
+        elif args.command == "record-term-decisions":
+            value = record_term_decisions(args.project.resolve(), args.source.resolve(), args.decisions.resolve(), args.term_map.resolve())
+        elif args.command == "reuse-source-analysis":
+            value = reuse_source_analysis(args.project.resolve(), args.source.resolve(), args.analysis.resolve())
         else:
             value = finalize(args.project.resolve(), args.input_type)
         print(json.dumps(value, ensure_ascii=False, indent=2))

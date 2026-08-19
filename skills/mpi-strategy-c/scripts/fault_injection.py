@@ -35,8 +35,57 @@ def git_commit(repo: Path, message: str) -> str:
     for command in (("git", "add", "-A"), ("git", "commit", "-m", message)):
         completed = subprocess.run(command, cwd=repo, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
         if completed.returncode:
-            raise StrategyCError("could not create disposable fault-test commit")
+            detail = completed.stderr.decode("utf-8", errors="replace").strip().splitlines()
+            suffix = f": {detail[-1]}" if detail else ""
+            raise StrategyCError(f"could not create disposable fault-test commit{suffix}")
     return subprocess.check_output(("git", "rev-parse", "HEAD"), cwd=repo, text=True).strip()
+
+
+def commit_submodule_pointer(repo: Path, submodule_path: str, submodule_sha: str, message: str) -> str:
+    """Create a disposable parent commit without hydrating unrelated partial-clone blobs."""
+    environment = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "MPI Strategy C self-test",
+        "GIT_AUTHOR_EMAIL": "self-test@example.invalid",
+        "GIT_COMMITTER_NAME": "MPI Strategy C self-test",
+        "GIT_COMMITTER_EMAIL": "self-test@example.invalid",
+    }
+    tree = subprocess.run(
+        ("git", "ls-tree", "HEAD"), cwd=repo, env=environment,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if tree.returncode:
+        raise StrategyCError("could not read disposable parent tree")
+    suffix = f"\t{submodule_path}".encode("utf-8")
+    rows = tree.stdout.splitlines()
+    replacement = f"160000 commit {submodule_sha}\t{submodule_path}".encode("utf-8")
+    matches = [index for index, row in enumerate(rows) if row.endswith(suffix)]
+    if len(matches) != 1:
+        raise StrategyCError("disposable parent tree has no unique toolkit gitlink")
+    rows[matches[0]] = replacement
+    new_tree = subprocess.run(
+        ("git", "mktree", "--missing"), cwd=repo, env=environment,
+        input=b"\n".join(rows) + b"\n", stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, check=False,
+    )
+    if new_tree.returncode:
+        raise StrategyCError("could not create disposable parent tree")
+    parent = subprocess.check_output(("git", "rev-parse", "HEAD"), cwd=repo, text=True).strip()
+    commit = subprocess.run(
+        ("git", "commit-tree", new_tree.stdout.decode().strip(), "-p", parent, "-m", message),
+        cwd=repo, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if commit.returncode:
+        raise StrategyCError("could not commit disposable parent tree")
+    commit_sha = commit.stdout.decode().strip()
+    for command in (
+        ("git", "update-ref", "HEAD", commit_sha),
+        ("git", "update-index", "--cacheinfo", f"160000,{submodule_sha},{submodule_path}"),
+    ):
+        completed = subprocess.run(command, cwd=repo, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        if completed.returncode:
+            raise StrategyCError("could not activate disposable parent commit")
+    return commit_sha
 
 
 def temporary_ready(root: Path, lock: dict, mpi: Path, toolkit: Path) -> None:
@@ -94,8 +143,10 @@ def run_fault_tests(installed_root: Path) -> dict:
         toolkit_doctor.write_text("import json\nprint(json.dumps({'ok': False}))\nraise SystemExit(1)\n", encoding="utf-8")
         failing_toolkit_sha = git_commit(toolkit, "force doctor failure")
         failing_lock["translation_toolkit"]["expected_sha"] = failing_toolkit_sha
-        subprocess.run(("git", "add", "toolkit"), cwd=mpi, check=True)
-        failing_mpi_sha = git_commit(mpi, "point to failing doctor")
+        failing_mpi_sha = commit_submodule_pointer(
+            mpi, lock["translation_toolkit"]["submodule_path"],
+            failing_toolkit_sha, "point to failing doctor",
+        )
         failing_lock["mpi_translations"]["expected_sha"] = failing_mpi_sha
         failing_lock_path = root / "fault-lock.json"
         atomic_json(failing_lock_path, failing_lock)
