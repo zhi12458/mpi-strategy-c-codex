@@ -27,9 +27,19 @@ extraction, terminology, Djot, DOCX, subtitle, or deterministic QA code.
 3. V4 Flash `high` reads frozen Chinese only. Reuse its analysis only when the
    frozen Chinese SHA-256 is identical. V4 Pro `max` reads Chinese, English,
    and the term map, but never the Flash analysis.
+   Flash must populate `temporal_relations`; every source time/aspect marker
+   such as `时`, `后`, `才`, `已`, `仍`, or `再` must also occur verbatim in
+   `must_preserve`. For Buddhist aphorisms, compact classical clauses,
+   parallel formulas, and ellipsis, Flash must populate `elliptical_subject`
+   and distinguish agent, cause, instrument, and state holder.
 4. Run two independent Pro bilingual reviews. Sol `high` is allowed only for
    targeted title/critical/major findings that remain after review two; never
    use it for a full-document M translation.
+   Each Pro review must emit one paragraph audit per nonblank source line,
+   separately checking temporal/aspect, condition, negation, degree,
+   elliptical subject, and semantic roles. Reverse-check who acts or bears the
+   state and why/by what; never promote wisdom, compassion, or another cause or
+   instrument to the English subject merely to preserve Chinese parallelism.
 5. Run every toolkit entry point through `strategy_m.py run-tool` so receipts
    remain complete. Freeze `Great Path, Great Business` and `Master Jiqun`
    whenever their Chinese source terms occur.

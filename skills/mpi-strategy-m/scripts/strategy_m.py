@@ -98,6 +98,64 @@ def deepseek_environment() -> dict[str, str]:
     return {"DEEPSEEK_API_KEY": secret}
 
 
+def expected_paragraph_ids(source: Path) -> tuple[str, ...]:
+    return tuple(
+        f"L{index}"
+        for index, line in enumerate(source.read_text(encoding="utf-8").splitlines(), start=1)
+        if line.strip()
+    )
+
+
+def validate_source_analysis_contract(source: Path, analysis: Path) -> dict:
+    value = load_json(analysis)
+    expected = load_lock()["models"]["source_analysis"]
+    configuration = value.get("configuration")
+    paragraphs = value.get("paragraphs")
+    if value.get("schema_version") != 2:
+        raise StrategyMError("source-analysis schema_version 2 is required")
+    if value.get("source_sha256") != sha256_file(source):
+        raise StrategyMError("source-analysis source SHA-256 is stale")
+    if (
+        value.get("provider") != expected["provider"]
+        or value.get("model") != expected["model"]
+        or not isinstance(configuration, dict)
+        or configuration.get("reasoning_effort") != expected["reasoning_effort"]
+    ):
+        raise StrategyMError("source-analysis model identity does not match the release lock")
+    if not isinstance(paragraphs, list):
+        raise StrategyMError("source-analysis paragraphs are missing")
+    paragraph_ids = []
+    for paragraph in paragraphs:
+        if not isinstance(paragraph, dict) or not {
+            "paragraph_id", "temporal_relations", "elliptical_subject", "must_preserve"
+        } <= set(paragraph):
+            raise StrategyMError("source-analysis semantic gates are missing")
+        paragraph_ids.append(paragraph["paragraph_id"])
+    if tuple(paragraph_ids) != expected_paragraph_ids(source):
+        raise StrategyMError("source-analysis paragraph coverage is incomplete")
+    return value
+
+
+def validate_semantic_review_contract(source: Path, certificate_path: Path) -> dict:
+    value = load_json(certificate_path)
+    audits = value.get("paragraph_audits")
+    if value.get("schema_version") != 2 or not isinstance(audits, list):
+        raise StrategyMError("semantic-review schema_version 2 paragraph audits are required")
+    audit_ids = []
+    required = {
+        "paragraph_id", "temporal_relations", "conditions", "negation", "degree",
+        "elliptical_subject", "semantic_roles", "actor_or_state_holder",
+        "cause_or_instrument", "finding_ids",
+    }
+    for audit in audits:
+        if not isinstance(audit, dict) or set(audit) != required:
+            raise StrategyMError("semantic-review paragraph audit is incomplete")
+        audit_ids.append(audit["paragraph_id"])
+    if tuple(audit_ids) != expected_paragraph_ids(source):
+        raise StrategyMError("semantic-review paragraph audits do not cover the frozen source")
+    return value
+
+
 def run_audited_tool(project: Path, stage: str, script_name: str, arguments: list[str], inputs: list[Path], outputs: list[Path]) -> dict:
     verify_ready()
     instruction = validate_instruction_receipt(project)
@@ -149,6 +207,16 @@ def run_audited_tool(project: Path, stage: str, script_name: str, arguments: lis
     for output in outputs:
         if output.stat().st_mtime + 1 < started:
             raise StrategyMError(f"toolkit stage {stage} produced a stale output")
+    if stage == "flash_analysis":
+        analyses = [path for path in outputs if path.name == "source-analysis.json"]
+        if len(analyses) != 1:
+            raise StrategyMError("flash_analysis must declare source-analysis.json")
+        validate_source_analysis_contract(project / "source.dj", analyses[0])
+    if stage in {"pro_review_1", "pro_review_2"}:
+        certificates = [path for path in outputs if path.name == "semantic-review.json"]
+        if len(certificates) != 1:
+            raise StrategyMError(f"{stage} must declare semantic-review.json")
+        validate_semantic_review_contract(project / "source.dj", certificates[0])
     if stage == "terminology":
         receipt_files = [path for path in outputs if path.name == "term-search-receipts.jsonl"]
         if len(receipt_files) != 1:
@@ -453,12 +521,14 @@ def record_term_decisions(project: Path, source: Path, decisions: Path, term_map
 def reuse_source_analysis(project: Path, source: Path, analysis: Path) -> dict:
     verify_ready()
     instruction = validate_instruction_receipt(project)
-    value = load_json(analysis)
-    expected = load_lock()["models"]["source_analysis"]
-    if value.get("source_sha256") != sha256_file(source):
-        raise StrategyMError("source-analysis cannot be reused because source SHA-256 changed")
-    if value.get("model") != expected["model"] or value.get("reasoning_effort") != expected["reasoning_effort"]:
-        raise StrategyMError("source-analysis model identity does not match the release lock")
+    try:
+        value = validate_source_analysis_contract(source, analysis)
+    except StrategyMError as exc:
+        if "source SHA-256" in str(exc):
+            raise StrategyMError(
+                "source-analysis cannot be reused because source SHA-256 changed"
+            ) from exc
+        raise
     receipt = {
         "schema_version": 1,
         "receipt_id": str(uuid.uuid4()),
@@ -571,9 +641,17 @@ def finalize(project: Path, input_type: str) -> dict:
     qa_failures = [str(path) for path in qa_paths if not path.is_file() or forbidden_qa_status(load_json(path))]
     second_review = project / "semantic-review.json"
     blockers = False
+    semantic_contract_error = None
     if second_review.is_file():
-        certificate = load_json(second_review)
-        blockers = certificate.get("status") == "blocking" or int(certificate.get("blocking_findings", 0)) > 0
+        try:
+            certificate = validate_semantic_review_contract(
+                project / "source.dj", second_review
+            )
+            blockers = certificate.get("status") == "blocking" or int(certificate.get("blocking_findings", 0)) > 0
+        except StrategyMError as exc:
+            semantic_contract_error = str(exc)
+    else:
+        semantic_contract_error = "semantic-review.json is missing"
     fallback_cleared = blockers and fallback_resolved(project, successful)
     unresolved_review_blockers = blockers and not fallback_cleared
     term_validation_error = None
@@ -588,7 +666,7 @@ def finalize(project: Path, input_type: str) -> dict:
     except StrategyMError as exc:
         term_validation_error = str(exc)
     unresolved_terms = bool(term_validation_error or (term_summary and term_summary["human_review_count"]))
-    pipeline_complete = not missing and not stale and not qa_failures and not unresolved_review_blockers and not unresolved_terms
+    pipeline_complete = not missing and not stale and not qa_failures and not semantic_contract_error and not unresolved_review_blockers and not unresolved_terms
     status = "needs_human" if unresolved_review_blockers or unresolved_terms else "ai_draft" if pipeline_complete else "blocked"
     manifest = {
         "schema_version": 1,
@@ -609,6 +687,7 @@ def finalize(project: Path, input_type: str) -> dict:
         "stale_or_missing_artifacts": sorted(set(stale)),
         "qa_failures": qa_failures,
         "remaining_review_blockers": unresolved_review_blockers,
+        "semantic_review_contract_error": semantic_contract_error,
         "sol_high_fallback_cleared": fallback_cleared,
         "term_decisions": term_summary,
         "strategy_fixed_terms": fixed_term_summary,

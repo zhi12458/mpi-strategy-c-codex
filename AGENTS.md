@@ -1,6 +1,6 @@
 # Repository conventions
 
-This repository installs, schedules, and audits MPI Strategy M 1.0. It must never
+This repository installs, schedules, and audits MPI Strategy M 1.0.x. It must never
 copy or reimplement translation-toolkit source extraction, MPI terminology,
 Djot canonicalization, bilingual generation, DOCX generation/QA, subtitle
 generation/QA, or deterministic translation checks.

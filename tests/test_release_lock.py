@@ -37,13 +37,18 @@ def test_public_release_uses_exact_verified_compatibility_forks():
     assert lock["compatibility_policy"]["automatic_main_updates"] is False
     assert lock["compatibility_policy"]["exact_sha_required"] is True
     assert lock["strategy_id"] == "M"
-    assert lock["workflow_version"] == "1.0.0"
-    assert lock["skill_version"] == "1.0.0"
+    assert lock["workflow_version"] == "1.0.1"
+    assert lock["skill_version"] == "1.0.1"
     assert lock["terminology_policy_version"] == "1.0.0"
     assert lock["models"]["translation"]["reasoning_effort"] == "medium"
     assert lock["models"]["translation_fallback"]["reasoning_effort"] == "high"
     assert lock["model_policy"]["translation_default"] == "fixed"
     assert lock["model_policy"]["independent_concision_pass_required"] is True
+    assert lock["model_policy"]["source_analysis_schema_version"] == 2
+    assert lock["model_policy"]["semantic_review_schema_version"] == 2
+    assert lock["model_policy"]["temporal_relations_required"] is True
+    assert lock["model_policy"]["elliptical_subject_required"] is True
+    assert lock["model_policy"]["per_paragraph_review_audits_required"] is True
     assert lock["model_policy"]["universal_model_superiority_claimed"] is False
     assert lock["fixed_terms"]["济群法师"] == "Master Jiqun"
     assert lock["fixed_terms"]["大道大商"] == "Great Path, Great Business"

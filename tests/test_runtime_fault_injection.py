@@ -50,6 +50,32 @@ def write_clear_term_decisions(project: Path) -> None:
     write(project / "term-map.yaml", '{"terms": []}\n')
 
 
+def write_semantic_review(project: Path, *, status="clear", blocking_findings=0) -> None:
+    source = project / "source.dj"
+    audits = []
+    for index, line in enumerate(source.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        audits.append({
+            "paragraph_id": f"L{index}",
+            "temporal_relations": "not_present",
+            "conditions": "not_present",
+            "negation": "not_present",
+            "degree": "not_present",
+            "elliptical_subject": "not_present",
+            "semantic_roles": "preserved",
+            "actor_or_state_holder": "本段角色已核对。",
+            "cause_or_instrument": "本段无相关原因或工具。",
+            "finding_ids": [],
+        })
+    write(project / "semantic-review.json", json.dumps({
+        "schema_version": 2,
+        "status": status,
+        "blocking_findings": blocking_findings,
+        "paragraph_audits": audits,
+    }, ensure_ascii=False))
+
+
 def make_repo(path: Path, origin: str) -> str:
     command(path.parent, "git", "init", str(path))
     command(path, "git", "config", "core.autocrlf", "false")
@@ -332,7 +358,7 @@ def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
     write(project / "target-docx-qa-report.json", json.dumps(qa))
     write(project / "bilingual-docx-qa-report.json", json.dumps(qa))
     write(project / "subtitle-qa-report.json", json.dumps(subtitle_qa))
-    write(project / "semantic-review.json", json.dumps({"status": "clear", "blocking_findings": 0}))
+    write_semantic_review(project)
     output = runtime.file_record(artifact)
     for stage in sorted(strategy_m.DOCUMENT_STAGES | strategy_m.MODEL_STAGES):
         runtime.append_receipt(project, {"receipt_id": stage, "workflow_stage": stage, "exit_code": 0, "outputs": [output]})
@@ -358,7 +384,7 @@ def test_forged_old_qa_report_fails_freshness_chain(installation, tmp_path):
     write(subtitle_path, json.dumps({"status": "not_applicable"}))
     write(target_docx_qa, json.dumps({"status": "PASS"}))
     write(bilingual_docx_qa, json.dumps({"status": "PASS"}))
-    write(project / "semantic-review.json", json.dumps({"status": "clear", "blocking_findings": 0}))
+    write_semantic_review(project)
     outputs = [runtime.file_record(path) for path in (bilingual, qa_path, subtitle_path, target_docx_qa, bilingual_docx_qa)]
     for stage in sorted(strategy_m.DOCUMENT_STAGES | strategy_m.MODEL_STAGES):
         runtime.append_receipt(project, {"receipt_id": stage, "workflow_stage": stage, "exit_code": 0, "outputs": outputs})
@@ -593,13 +619,27 @@ def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path
     analysis = project / "source-analysis.json"
     write(source, "原文\n")
     runtime.atomic_json(analysis, {
+        "schema_version": 2,
         "source_sha256": runtime.sha256_file(source),
+        "provider": "deepseek",
         "model": "deepseek-v4-flash",
-        "reasoning_effort": "high",
-        "analyses": [],
+        "configuration": {"reasoning_effort": "high"},
+        "paragraphs": [{
+            "paragraph_id": "L1",
+            "temporal_relations": [],
+            "elliptical_subject": [],
+            "must_preserve": ["保留原义"],
+        }],
     })
     receipt = strategy_m.reuse_source_analysis(project, source, analysis)
     assert receipt["workflow_stage"] == "flash_analysis_reuse"
+    value = runtime.load_json(analysis)
+    value["schema_version"] = 1
+    runtime.atomic_json(analysis, value)
+    with pytest.raises(runtime.StrategyMError, match="schema_version 2"):
+        strategy_m.reuse_source_analysis(project, source, analysis)
+    value["schema_version"] = 2
+    runtime.atomic_json(analysis, value)
     write(source, "原文已改\n")
     with pytest.raises(runtime.StrategyMError, match="source SHA-256 changed"):
         strategy_m.reuse_source_analysis(project, source, analysis)

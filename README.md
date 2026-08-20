@@ -1,9 +1,13 @@
 # mpi-strategy-m-codex
 
 Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
-translation. M 1.0 fixes the model roles as V4 Flash source analysis,
+translation. M 1.0.1 fixes the model roles as V4 Flash source analysis,
 GPT-5.6-Sol Medium drafting/accuracy/concision, two V4 Pro bilingual reviews,
 and Sol High targeted fallback after review two only.
+
+M 1.0.1 also makes temporal/aspect relations, compressed-clause implicit
+subjects, semantic-role separation, and per-paragraph Pro audit coverage
+machine-enforced release gates.
 
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
