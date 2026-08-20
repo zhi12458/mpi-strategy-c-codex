@@ -37,8 +37,8 @@ def test_public_release_uses_exact_verified_compatibility_forks():
     assert lock["compatibility_policy"]["automatic_main_updates"] is False
     assert lock["compatibility_policy"]["exact_sha_required"] is True
     assert lock["strategy_id"] == "M"
-    assert lock["workflow_version"] == "1.0.4"
-    assert lock["skill_version"] == "1.0.4"
+    assert lock["workflow_version"] == "1.0.5"
+    assert lock["skill_version"] == "1.0.5"
     assert lock["terminology_policy_version"] == "1.1.0"
     assert lock["models"]["translation"]["reasoning_effort"] == "medium"
     assert lock["models"]["translation_fallback"]["reasoning_effort"] == "high"
@@ -49,10 +49,14 @@ def test_public_release_uses_exact_verified_compatibility_forks():
     assert lock["model_policy"]["source_analysis_context_window_paragraphs"] == 3
     assert lock["model_policy"]["source_analysis_max_completion_tokens"] == 8192
     assert lock["model_policy"]["source_analysis_retry_limit"] == 5
-    assert lock["model_policy"]["source_analysis_component_mode"] == "four-pass-merge"
+    assert lock["model_policy"]["source_analysis_default_batch_size"] == 2
+    assert lock["model_policy"]["source_analysis_component_mode"] == "seven-pass-merge"
     assert lock["model_policy"]["source_analysis_components"] == [
-        "core", "scope", "reference", "constraints"
+        "core", "temporal", "operator_negation_modality",
+        "operator_quantity_degree", "operator_tense_aspect_other",
+        "reference", "constraints"
     ]
+    assert lock["model_policy"]["source_analysis_component_context_windows"]["reference"] == 3
     assert lock["model_policy"]["semantic_review_schema_version"] == 3
     assert lock["model_policy"]["cultural_allusions_required"] is True
     assert lock["model_policy"]["temporal_relations_required"] is True
