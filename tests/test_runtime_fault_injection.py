@@ -370,6 +370,30 @@ def test_tool_call_is_receipted_with_repository_and_hashes(installation, tmp_pat
     assert runtime.read_receipts(project)[0]["outputs"][0]["sha256"] == runtime.sha256_file(output)
 
 
+def test_safe_tool_diagnostics_accepts_only_strict_metadata():
+    safe = (
+        b'diagnostic-json:{"schema_version":1,"code":"deepseek_transport_failure",'
+        b'"retryable":true,"component":"reference","paragraph_id":"L41",'
+        b'"fallback":"single-paragraph","transport_kind":"timeout"}\n'
+    )
+    malicious = (
+        b'diagnostic-json:{"schema_version":1,"code":"deepseek_transport_failure",'
+        b'"retryable":true,"component":"reference","private_text":"secret"}\n'
+    )
+
+    assert strategy_m.safe_tool_diagnostics(safe + malicious) == [
+        {
+            "schema_version": 1,
+            "code": "deepseek_transport_failure",
+            "retryable": True,
+            "component": "reference",
+            "paragraph_id": "L41",
+            "fallback": "single-paragraph",
+            "transport_kind": "timeout",
+        }
+    ]
+
+
 def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
     project = tmp_path / "project"
     runtime.begin_project(project, "document")

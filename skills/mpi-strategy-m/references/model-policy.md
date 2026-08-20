@@ -1,4 +1,4 @@
-# M 1.0.7 model policy
+# M 1.0.8 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
@@ -14,6 +14,11 @@ better than every model or reasoning level.
   omits the explicit completion cap, matching the verified C provider envelope.
   Other validation failures remain capped. This changes request recovery, not
   full-document coverage or local v3 validation.
+  If all component and single-paragraph retries end in a confirmed transient
+  provider failure, the toolkit performs two additional bounded retries of the
+  exact same batch. It does not change the model, `high`, Chinese window,
+  component, term map, or schema, and existing 1.0.7 batch checkpoints remain
+  reusable because their locked request configuration is unchanged.
   Each two-paragraph batch uses seven Flash high components—core, temporal,
   negation/modality, quantity/degree, tense/aspect/other,
   reference/elliptical subject, and allusions/constraints. Time and operator
@@ -22,6 +27,10 @@ better than every model or reasoning level.
   paragraph ID, and accepts only the complete v3 object. The v3 configuration
   schema explicitly accepts both component fallback and completion recovery
   metadata, preventing a valid Flash run from failing during atomic write.
+  Audited tool receipts may retain only strict provider-body-free diagnostics:
+  an allowlisted error code, component, paragraph ID, retryability, and bounded
+  transport or completion counters. Provider bodies and reasoning text remain
+  excluded.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the

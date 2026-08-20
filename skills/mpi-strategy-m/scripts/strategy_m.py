@@ -75,6 +75,96 @@ MPI_TERM_SOURCES = {"DoT定稿", "内部特色词", "佛教术语", "经论名"}
 EXTERNAL_TERM_SOURCES = {"cbeta", "bdk", "nti_reader", "84000", "academic", "university", "buddhist_institution"}
 STRUCTURAL_RE = re.compile(r"\{#[^{}]*\}|\(\s*#?[^{}\n]*\)")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+PARAGRAPH_ID_RE = re.compile(r"^L[1-9][0-9]*$")
+TOOL_DIAGNOSTIC_PREFIX = b"diagnostic-json:"
+TOOL_DIAGNOSTIC_CODES = {
+    "deepseek_completion_recovery",
+    "deepseek_http_transient",
+    "deepseek_rate_limit",
+    "deepseek_transport_failure",
+}
+TOOL_DIAGNOSTIC_COMPONENTS = {
+    "core",
+    "temporal",
+    "operator_negation_modality",
+    "operator_quantity_degree",
+    "operator_tense_aspect_other",
+    "reference",
+    "constraints",
+}
+TOOL_DIAGNOSTIC_KEYS = {
+    "schema_version",
+    "code",
+    "retryable",
+    "component",
+    "paragraph_id",
+    "fallback",
+    "transport_kind",
+    "http_status",
+    "finish_reason",
+    "reasoning_bytes",
+    "completion_tokens",
+}
+
+
+def safe_tool_diagnostics(stderr: bytes) -> list[dict]:
+    """Extract only strict, provider-body-free diagnostics emitted by locked tools."""
+    diagnostics: list[dict] = []
+    for line in stderr.splitlines():
+        if not line.startswith(TOOL_DIAGNOSTIC_PREFIX) or len(line) > 2048:
+            continue
+        try:
+            value = json.loads(line[len(TOOL_DIAGNOSTIC_PREFIX) :].decode("ascii"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(value, dict) or not set(value) <= TOOL_DIAGNOSTIC_KEYS:
+            continue
+        if (
+            value.get("schema_version") != 1
+            or value.get("code") not in TOOL_DIAGNOSTIC_CODES
+            or value.get("retryable") is not True
+        ):
+            continue
+        component = value.get("component")
+        paragraph_id = value.get("paragraph_id")
+        fallback = value.get("fallback")
+        transport_kind = value.get("transport_kind")
+        finish_reason = value.get("finish_reason")
+        http_status = value.get("http_status")
+        reasoning_bytes = value.get("reasoning_bytes")
+        completion_tokens = value.get("completion_tokens")
+        if component is not None and component not in TOOL_DIAGNOSTIC_COMPONENTS:
+            continue
+        if paragraph_id is not None and (
+            not isinstance(paragraph_id, str)
+            or PARAGRAPH_ID_RE.fullmatch(paragraph_id) is None
+        ):
+            continue
+        if fallback is not None and fallback != "single-paragraph":
+            continue
+        if transport_kind is not None and transport_kind not in {
+            "connection",
+            "network",
+            "timeout",
+            "tls",
+        }:
+            continue
+        if finish_reason is not None and finish_reason not in {"length", "stop"}:
+            continue
+        if http_status is not None and (
+            not isinstance(http_status, int)
+            or isinstance(http_status, bool)
+            or not 100 <= http_status <= 599
+        ):
+            continue
+        for number in (reasoning_bytes, completion_tokens):
+            if number is not None and (
+                not isinstance(number, int) or isinstance(number, bool) or number < 0
+            ):
+                break
+        else:
+            diagnostics.append(value)
+    return diagnostics
 
 
 def safe_receipt_base(stage: str, started: float, command: list[str], cwd: Path) -> dict:
@@ -192,6 +282,7 @@ def run_audited_tool(project: Path, stage: str, script_name: str, arguments: lis
         if environment is not None:
             environment.pop("DEEPSEEK_API_KEY", None)
     finished = time.time()
+    stderr_diagnostics = safe_tool_diagnostics(completed.stderr)
     receipt.update({
         "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(finished)),
         "duration_seconds": round(finished - started, 6),
@@ -200,11 +291,25 @@ def run_audited_tool(project: Path, stage: str, script_name: str, arguments: lis
         "stderr_sha256": sha256_bytes(completed.stderr),
         "stdout_summary": {"bytes": len(completed.stdout), "lines": completed.stdout.count(b"\n")},
         "stderr_summary": {"bytes": len(completed.stderr), "lines": completed.stderr.count(b"\n")},
+        "stderr_diagnostics": stderr_diagnostics,
         "outputs": file_hashes(outputs, require=False),
     })
     append_receipt(project, receipt)
     if completed.returncode:
-        raise StrategyMError(f"toolkit stage {stage} failed with exit code {completed.returncode}")
+        context = ""
+        if stderr_diagnostics:
+            diagnostic = stderr_diagnostics[-1]
+            location = "/".join(
+                str(diagnostic[key])
+                for key in ("component", "paragraph_id")
+                if key in diagnostic
+            )
+            context = f" ({diagnostic['code']}" + (
+                f" at {location})" if location else ")"
+            )
+        raise StrategyMError(
+            f"toolkit stage {stage} failed with exit code {completed.returncode}{context}"
+        )
     if len(receipt["outputs"]) != len(outputs):
         raise StrategyMError(f"toolkit stage {stage} did not produce every declared output")
     for output in outputs:
