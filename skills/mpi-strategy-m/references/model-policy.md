@@ -1,4 +1,4 @@
-# M 1.0.8 model policy
+# M 1.0.9 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
@@ -27,6 +27,14 @@ better than every model or reasoning level.
   paragraph ID, and accepts only the complete v3 object. The v3 configuration
   schema explicitly accepts both component fallback and completion recovery
   metadata, preventing a valid Flash run from failing during atomic write.
+  After the seven independently validated components merge, the toolkit
+  deterministically adds each validated temporal marker to the same
+  paragraph's `must_preserve` list when absent. This cross-component
+  reconciliation does not generate new semantics, change the model or window,
+  or emit source text to logs. It runs before the complete v3 full-source
+  validator and is recorded in the final artifact configuration. Existing
+  1.0.7 and 1.0.8 partial checkpoints remain compatible because the checkpoint
+  request configuration is unchanged.
   Audited tool receipts may retain only strict provider-body-free diagnostics:
   an allowlisted error code, component, paragraph ID, retryability, and bounded
   transport or completion counters. Provider bodies and reasoning text remain

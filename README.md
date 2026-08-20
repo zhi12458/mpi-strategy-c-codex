@@ -1,30 +1,30 @@
 # mpi-strategy-m-codex
 
 Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
-translation. M 1.0.8 fixes the model roles as V4 Flash source analysis,
+translation. M 1.0.9 fixes the model roles as V4 Flash source analysis,
 GPT-5.6-Sol Medium drafting/accuracy/concision, two V4 Pro bilingual reviews,
 and Sol High targeted fallback after review two only.
 
-M 1.0.8 retains cultural allusions as an audited hard gate: Flash enumerates
+M 1.0.9 retains cultural allusions as an audited hard gate: Flash enumerates
 them, authoritative web evidence is receipted before Sol starts, and Pro checks
 their contextual meaning independently. `独善其身` is a release regression.
 
-M 1.0.8 also retains the temporal/aspect, compressed-clause implicit
+M 1.0.9 also retains the temporal/aspect, compressed-clause implicit
 subjects, semantic-role separation, and per-paragraph Pro audit coverage
 machine-enforced release gates.
 
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `e4d0f6ce9a99af025f41710c24ebc49e7d679a4a`;
-- `translation-toolkit` at `80183e5a5e8660f26e040f5042e3ecf45959abfb`.
+- `mpi-translations` at `7925d66ffd152d322b51f10b6eb0df4e2a57dd42`;
+- `translation-toolkit` at `b32e46605fa1cc5d543cd29dfc8ceffd7204680c`.
 
-M 1.0.8 retains the fixed-term provenance gate: the locked toolkit
+M 1.0.9 retains the fixed-term provenance gate: the locked toolkit
 searches MPI first and accepts explicit, auditable `--fixed-term` arguments,
 so release terms such as `济群法师` → `Master Jiqun` are created by toolkit
 rather than by an unreceipted edit.
 
-M 1.0.8 bounds long-document Flash requests without reducing semantic
+M 1.0.9 bounds long-document Flash requests without reducing semantic
 coverage. Each serial batch carries the exact requested text plus three
 neighbouring paragraphs on each side, preserves physical blank lines, and
 includes only terms present in that window. Every frozen nonblank paragraph is
@@ -40,14 +40,19 @@ complete v3 validator passes. Successful components are retained in memory
 while only a failed component is retried. If unchanged retries are exhausted,
 the locked toolkit retries that component one paragraph at a time and applies
 the same schema, evidence, coverage, and full-source validators before the
-batch may be checkpointed. M 1.0.8 also accepts an existing 1.0.7 checkpoint
+batch may be checkpointed. M 1.0.9 also accepts existing 1.0.7 and 1.0.8 checkpoints
 without changing its frozen input or request configuration. After an exhausted
 transport, rate-limit, empty-content, or length failure, it automatically
 retries the same unchanged batch for two additional bounded cycles. It also
 records only strict provider-body-free diagnostic metadata (error code,
 component, paragraph ID, and safe transport/completion counters) in the
 audited receipt; arbitrary stderr and model reasoning remain hash-only.
-M 1.0.8 retains the previously missing schema
+M 1.0.9 additionally reconciles the independently generated fields after all
+seven components pass their own validation: every validated temporal marker is
+deterministically included in the same paragraph's `must_preserve` list before
+the complete v3 full-source gate. This adds no inferred meaning, emits no source
+text to logs, and does not change the checkpoint request configuration.
+M 1.0.9 retains the previously missing schema
 properties for component fallback and completion recovery metadata, so a valid
 Flash run cannot fail only when its final artifact is atomically written.
 

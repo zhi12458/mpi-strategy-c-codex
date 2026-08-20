@@ -37,8 +37,8 @@ def test_public_release_uses_exact_verified_compatibility_forks():
     assert lock["compatibility_policy"]["automatic_main_updates"] is False
     assert lock["compatibility_policy"]["exact_sha_required"] is True
     assert lock["strategy_id"] == "M"
-    assert lock["workflow_version"] == "1.0.8"
-    assert lock["skill_version"] == "1.0.8"
+    assert lock["workflow_version"] == "1.0.9"
+    assert lock["skill_version"] == "1.0.9"
     assert lock["terminology_policy_version"] == "1.1.0"
     assert lock["models"]["translation"]["reasoning_effort"] == "medium"
     assert lock["models"]["translation_fallback"]["reasoning_effort"] == "high"
@@ -61,6 +61,9 @@ def test_public_release_uses_exact_verified_compatibility_forks():
         "retry-same-batch-after-exhausted-transient-component"
     )
     assert lock["model_policy"]["source_analysis_transient_batch_retry_limit"] == 2
+    assert lock["model_policy"]["source_analysis_cross_component_reconciliation_mode"] == (
+        "union-validated-temporal-markers-into-must-preserve"
+    )
     assert lock["model_policy"]["tool_stderr_diagnostic_mode"] == (
         "strict-provider-body-free-json"
     )
