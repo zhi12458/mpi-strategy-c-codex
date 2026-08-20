@@ -81,6 +81,7 @@ TOOL_DIAGNOSTIC_CODES = {
     "deepseek_completion_recovery",
     "deepseek_http_transient",
     "deepseek_rate_limit",
+    "deepseek_source_analysis_validation",
     "deepseek_transport_failure",
 }
 TOOL_DIAGNOSTIC_COMPONENTS = {
@@ -104,7 +105,95 @@ TOOL_DIAGNOSTIC_KEYS = {
     "finish_reason",
     "reasoning_bytes",
     "completion_tokens",
+    "field",
+    "category",
 }
+TOOL_VALIDATION_FIELD_RE = re.compile(
+    r"^[a-z_]+(?:\[[0-9]+\])?(?:\.[a-z_]+(?:\[[0-9]+\])?)*$"
+)
+TOOL_VALIDATION_FIELD_SEGMENTS = {
+    "candidate_referents",
+    "canonical_meaning",
+    "clause",
+    "competing_interpretations",
+    "competing_senses",
+    "contextual_meaning",
+    "counterevidence",
+    "cultural_allusions",
+    "elliptical_subject",
+    "event_or_scope",
+    "evidence",
+    "evidence_status",
+    "expression",
+    "external_research_required",
+    "interpretation",
+    "kind",
+    "linked_event",
+    "marker",
+    "must_not_invent",
+    "must_preserve",
+    "notes",
+    "operators",
+    "paragraph_id",
+    "participant",
+    "participants",
+    "predicate",
+    "predicates",
+    "reference",
+    "references_and_ellipsis",
+    "referent",
+    "relation",
+    "relations",
+    "research_trigger",
+    "role",
+    "role_bindings",
+    "scope",
+    "source_clause",
+    "source_or_origin",
+    "status",
+    "subject_evidence",
+    "subject_resolution",
+    "supporting_evidence",
+    "target_clause",
+    "temporal_relations",
+    "translation_constraint",
+    "type",
+}
+TOOL_VALIDATION_CATEGORIES = {
+    "item_limit",
+    "minimum_length",
+    "maximum_length",
+    "invalid_format",
+    "minimum_value",
+    "exclusive_minimum",
+    "nonverbatim_evidence",
+    "analysis_language",
+    "null_explicit_participant",
+    "null_explicit_referent",
+    "explicit_role_evidence",
+    "explicit_relation_evidence",
+    "explicit_operator_marker",
+    "explicit_reference_evidence",
+    "participant_evidence_support",
+    "temporal_relation_coverage",
+    "temporal_preservation_coverage",
+    "causal_role_promotion",
+    "actor_state_holder_coverage",
+    "compressed_clause_coverage",
+    "causal_role_separation",
+    "known_allusion_coverage",
+    "allusion_preservation_coverage",
+    "field_validation",
+}
+
+
+def safe_validation_field(field: object) -> bool:
+    if not isinstance(field, str) or TOOL_VALIDATION_FIELD_RE.fullmatch(field) is None:
+        return False
+    return all(
+        re.sub(r"\[[0-9]+\]$", "", segment) in TOOL_VALIDATION_FIELD_SEGMENTS
+        for segment in field.split(".")
+    )
 
 
 def safe_tool_diagnostics(stderr: bytes) -> list[dict]:
@@ -119,11 +208,33 @@ def safe_tool_diagnostics(stderr: bytes) -> list[dict]:
             continue
         if not isinstance(value, dict) or not set(value) <= TOOL_DIAGNOSTIC_KEYS:
             continue
-        if (
-            value.get("schema_version") != 1
-            or value.get("code") not in TOOL_DIAGNOSTIC_CODES
-            or value.get("retryable") is not True
-        ):
+        code = value.get("code")
+        if value.get("schema_version") != 1 or code not in TOOL_DIAGNOSTIC_CODES:
+            continue
+        if code == "deepseek_source_analysis_validation":
+            paragraph_id = value.get("paragraph_id")
+            field = value.get("field")
+            category = value.get("category")
+            if (
+                value.get("retryable") is not False
+                or not isinstance(paragraph_id, str)
+                or PARAGRAPH_ID_RE.fullmatch(paragraph_id) is None
+                or not safe_validation_field(field)
+                or category not in TOOL_VALIDATION_CATEGORIES
+                or set(value)
+                != {
+                    "schema_version",
+                    "code",
+                    "retryable",
+                    "paragraph_id",
+                    "field",
+                    "category",
+                }
+            ):
+                continue
+            diagnostics.append(value)
+            continue
+        if value.get("retryable") is not True:
             continue
         component = value.get("component")
         paragraph_id = value.get("paragraph_id")

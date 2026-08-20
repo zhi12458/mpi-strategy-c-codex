@@ -1,4 +1,4 @@
-# M 1.0.9 model policy
+# M 1.0.10 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
@@ -39,6 +39,10 @@ better than every model or reasoning level.
   an allowlisted error code, component, paragraph ID, retryability, and bounded
   transport or completion counters. Provider bodies and reasoning text remain
   excluded.
+  A deterministic final validation failure is also receipted as non-retryable
+  structural metadata: a fixed code, paragraph ID, allowlisted schema field
+  path, and allowlisted category. The original message, source marker,
+  evidence value, source text, provider body, and reasoning remain excluded.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the

@@ -394,6 +394,35 @@ def test_safe_tool_diagnostics_accepts_only_strict_metadata():
     ]
 
 
+def test_safe_tool_diagnostics_accepts_structural_nonretryable_validation_only():
+    safe = (
+        b'diagnostic-json:{"schema_version":1,'
+        b'"code":"deepseek_source_analysis_validation","retryable":false,'
+        b'"paragraph_id":"L45","field":"predicates[2].participants[0].participant",'
+        b'"category":"participant_evidence_support"}\n'
+    )
+    unsafe_field = safe.replace(
+        b'predicates[2].participants[0].participant', b'private.source.text'
+    )
+    unsafe_category = safe.replace(
+        b'participant_evidence_support', b'contains_private_detail'
+    )
+    wrong_retryability = safe.replace(b'"retryable":false', b'"retryable":true')
+
+    assert strategy_m.safe_tool_diagnostics(
+        safe + unsafe_field + unsafe_category + wrong_retryability
+    ) == [
+        {
+            "schema_version": 1,
+            "code": "deepseek_source_analysis_validation",
+            "retryable": False,
+            "paragraph_id": "L45",
+            "field": "predicates[2].participants[0].participant",
+            "category": "participant_evidence_support",
+        }
+    ]
+
+
 def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
     project = tmp_path / "project"
     runtime.begin_project(project, "document")
