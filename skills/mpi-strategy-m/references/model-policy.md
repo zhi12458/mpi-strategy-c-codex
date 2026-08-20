@@ -1,4 +1,4 @@
-# M 1.0.2 model policy
+# M 1.0.3 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.

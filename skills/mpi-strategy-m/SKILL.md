@@ -49,7 +49,9 @@ extraction, terminology, Djot, DOCX, subtitle, or deterministic QA code.
    instrument to the English subject merely to preserve Chinese parallelism.
 5. Run every toolkit entry point through `strategy_m.py run-tool` so receipts
    remain complete. Freeze `Great Path, Great Business` and `Master Jiqun`
-   whenever their Chinese source terms occur.
+   whenever their Chinese source terms occur. Supply each source-present fixed
+   term to `build-term-map.py` through its audited `--fixed-term` argument;
+   never add it by editing the generated map afterward.
 6. Unresolved terms or review blockers require human judgment. Never average
    away a disagreement.
    Missing `allusion-decisions.json`, missing or stale

@@ -6,8 +6,10 @@ the original input.
 1. Run `doctor`, then `begin --input-type document`.
 2. Extract `source.dj` with the locked toolkit and freeze project metadata.
 3. Build the MPI-backed term map, investigate only uncertain/high-risk terms,
-   and receipt `term-decisions.json`. The M-wide fixed terms apply whenever
-   present: `济群法师` → `Master Jiqun`; `大道大商` → `Great Path, Great Business`.
+   and receipt `term-decisions.json`. Pass every source-present M-wide fixed
+   term to the locked toolkit as an explicit `--fixed-term SOURCE=PREFERRED`
+   argument so the search and override share one audited receipt. The fixed
+   terms are `济群法师` → `Master Jiqun`; `大道大商` → `Great Path, Great Business`.
 4. Run V4 Flash `high` on frozen Chinese before English exists. Reuse an
    earlier source analysis only through `reuse-source-analysis`, which requires
    the exact source SHA-256 and schema v3. Flash must separately record
