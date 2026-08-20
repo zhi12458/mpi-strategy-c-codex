@@ -8,7 +8,7 @@
   "release_status": "verified_compatibility_forks",
   "mpi_translations": {
     "origin": "https://github.com/zhi12458/mpi-translations.git",
-    "expected_sha": "f6ed33c37fcf4183a65a3c75a087bc78c4cf2338",
+    "expected_sha": "ebd25f0d4ae504a125d28385df67a71b3d766d00",
     "compatibility_fork": true,
     "upstream_origin": "https://git.sr.ht/~iacore/mpi-translations/",
     "upstream_base_sha": "4a6d4af31c89d3ce43d010550e6c7090587e5ebf",

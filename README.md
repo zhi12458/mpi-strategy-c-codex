@@ -16,7 +16,7 @@ machine-enforced release gates.
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `f6ed33c37fcf4183a65a3c75a087bc78c4cf2338`;
+- `mpi-translations` at `ebd25f0d4ae504a125d28385df67a71b3d766d00`;
 - `translation-toolkit` at `b450aa73092e986985120122d7c4de393b0eedcb`.
 
 M 1.0.4 also closes the fixed-term provenance gap: the locked toolkit now
