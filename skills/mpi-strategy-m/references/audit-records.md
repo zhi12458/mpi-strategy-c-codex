@@ -24,6 +24,14 @@ scope, and status. `record-term-decisions` validates it against the frozen
 source and adds a receipt. A high-confidence MPI decision may omit web evidence;
 all other frozen uncertain decisions require admissible external evidence.
 
+`external-lookup-receipts.jsonl` and `allusion-decisions.json` form a separate
+cultural-expression evidence chain. The former records the actual authoritative
+pages opened for every Flash-declared expression; the latter binds those
+receipts to the exact source line and source-analysis hash. The
+`allusion_research` receipt is mandatory even when Flash reports no allusions,
+so omission cannot masquerade as a skipped stage. Sol translation receipts must
+include `allusion-decisions.json` as an input.
+
 A reused `source-analysis.json` receives a `flash_analysis_reuse` receipt only
 when its stored source SHA-256 exactly matches the current `source.dj`. A Sol
 high receipt is valid only at `sol_fallback` and must produce a targeted

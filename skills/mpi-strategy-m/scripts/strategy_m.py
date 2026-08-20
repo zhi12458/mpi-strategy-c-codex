@@ -57,7 +57,7 @@ STAGE_SCRIPTS = {
     "subtitle_qa": {"check-subtitles.py"},
 }
 DOCUMENT_STAGES = {
-    "source_extraction", "terminology", "terminology_search", "terminology_decisions", "flash_analysis", "target_freeze",
+    "source_extraction", "terminology", "terminology_search", "terminology_decisions", "flash_analysis", "allusion_research", "target_freeze",
     "bilingual_1", "pro_review_1", "target_accuracy_refreeze", "bilingual_2",
     "target_concision_refreeze", "bilingual_final",
     "pro_review_2", "translation_qa", "target_docx", "bilingual_docx",
@@ -74,6 +74,7 @@ TERM_TRIGGERS = {"mpi_missing", "mpi_conflict", "context_ambiguity", "high_risk"
 MPI_TERM_SOURCES = {"DoT定稿", "内部特色词", "佛教术语", "经论名"}
 EXTERNAL_TERM_SOURCES = {"cbeta", "bdk", "nti_reader", "84000", "academic", "university", "buddhist_institution"}
 STRUCTURAL_RE = re.compile(r"\{#[^{}]*\}|\(\s*#?[^{}\n]*\)")
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def safe_receipt_base(stage: str, started: float, command: list[str], cwd: Path) -> dict:
@@ -111,8 +112,8 @@ def validate_source_analysis_contract(source: Path, analysis: Path) -> dict:
     expected = load_lock()["models"]["source_analysis"]
     configuration = value.get("configuration")
     paragraphs = value.get("paragraphs")
-    if value.get("schema_version") != 2:
-        raise StrategyMError("source-analysis schema_version 2 is required")
+    if value.get("schema_version") != 3:
+        raise StrategyMError("source-analysis schema_version 3 is required")
     if value.get("source_sha256") != sha256_file(source):
         raise StrategyMError("source-analysis source SHA-256 is stale")
     if (
@@ -127,7 +128,8 @@ def validate_source_analysis_contract(source: Path, analysis: Path) -> dict:
     paragraph_ids = []
     for paragraph in paragraphs:
         if not isinstance(paragraph, dict) or not {
-            "paragraph_id", "temporal_relations", "elliptical_subject", "must_preserve"
+            "paragraph_id", "temporal_relations", "elliptical_subject",
+            "cultural_allusions", "must_preserve"
         } <= set(paragraph):
             raise StrategyMError("source-analysis semantic gates are missing")
         paragraph_ids.append(paragraph["paragraph_id"])
@@ -139,13 +141,14 @@ def validate_source_analysis_contract(source: Path, analysis: Path) -> dict:
 def validate_semantic_review_contract(source: Path, certificate_path: Path) -> dict:
     value = load_json(certificate_path)
     audits = value.get("paragraph_audits")
-    if value.get("schema_version") != 2 or not isinstance(audits, list):
-        raise StrategyMError("semantic-review schema_version 2 paragraph audits are required")
+    if value.get("schema_version") != 3 or not isinstance(audits, list):
+        raise StrategyMError("semantic-review schema_version 3 paragraph audits are required")
     audit_ids = []
     required = {
         "paragraph_id", "temporal_relations", "conditions", "negation", "degree",
-        "elliptical_subject", "semantic_roles", "actor_or_state_holder",
-        "cause_or_instrument", "finding_ids",
+        "elliptical_subject", "cultural_allusions", "semantic_roles",
+        "actor_or_state_holder", "cause_or_instrument",
+        "allusion_or_quotation", "finding_ids",
     }
     for audit in audits:
         if not isinstance(audit, dict) or set(audit) != required:
@@ -287,7 +290,10 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
         if item.get("exit_code", 0) == 0
     }
     prerequisites = {
-        "sol_translation": ({"flash_model"}, {"flash_analysis_reuse"}),
+        "sol_translation": (
+            {"flash_model", "allusion_research"},
+            {"flash_analysis_reuse", "allusion_research"},
+        ),
         "pro_model_1": ({"sol_translation", "pro_review_1"},),
         "sol_accuracy_revision": ({"pro_model_1"},),
         "sol_concision": ({"sol_accuracy_revision"},),
@@ -296,6 +302,31 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
     alternatives = prerequisites.get(stage)
     if alternatives and not any(required <= successful for required in alternatives):
         raise StrategyMError(f"model stage {stage} is out of order")
+    if stage == "sol_translation":
+        resolved_inputs = {path.expanduser().resolve() for path in inputs}
+        required_inputs = {
+            (project / "source.dj").resolve(),
+            (project / "source-analysis.json").resolve(),
+            (project / "term-map.yaml").resolve(),
+            (project / "allusion-decisions.json").resolve(),
+        }
+        if not required_inputs <= resolved_inputs:
+            raise StrategyMError(
+                "Sol translation must read frozen source, term map, Flash analysis, and allusion decisions"
+            )
+        decisions_path = (project / "allusion-decisions.json").resolve()
+        decisions_hash = sha256_file(decisions_path)
+        allusion_evidence_is_current = any(
+            receipt.get("workflow_stage") == "allusion_research"
+            and any(
+                output.get("absolute_path") == str(decisions_path)
+                and output.get("sha256") == decisions_hash
+                for output in receipt.get("outputs", [])
+            )
+            for receipt in read_receipts(project)
+        )
+        if not allusion_evidence_is_current:
+            raise StrategyMError("Sol translation requires current receipted allusion decisions")
     if stage == "sol_concision":
         input_names = {path.name for path in inputs}
         if "source.dj" not in input_names or not input_names.intersection({"sol-revised.dj", "target.dj"}):
@@ -437,6 +468,206 @@ def validate_term_decisions(source: Path, decisions: Path) -> dict:
     }
 
 
+def source_analysis_allusions(source: Path, analysis: Path) -> list[dict]:
+    """Return every Flash-declared cultural expression bound to frozen source bytes."""
+    value = validate_source_analysis_contract(source, analysis)
+    lines = source.read_text(encoding="utf-8").splitlines()
+    allusions: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for paragraph in value["paragraphs"]:
+        paragraph_id = paragraph["paragraph_id"]
+        if not isinstance(paragraph_id, str) or re.fullmatch(r"L[1-9][0-9]*", paragraph_id) is None:
+            raise StrategyMError("source-analysis cultural allusion has an invalid paragraph_id")
+        line_number = int(paragraph_id[1:])
+        if line_number > len(lines):
+            raise StrategyMError("source-analysis cultural allusion is outside source.dj")
+        line = lines[line_number - 1]
+        for allusion in paragraph["cultural_allusions"]:
+            expression = allusion.get("expression") if isinstance(allusion, dict) else None
+            if not isinstance(expression, str) or not expression or expression not in line:
+                raise StrategyMError("source-analysis cultural allusion lacks verbatim source evidence")
+            identity = (paragraph_id, expression)
+            if identity in seen:
+                raise StrategyMError("source-analysis contains a duplicate cultural allusion")
+            seen.add(identity)
+            allusions.append({
+                "paragraph_id": paragraph_id,
+                "line": line_number,
+                "source_expression": expression,
+                "source_text_sha256": sha256_bytes(line.encode("utf-8")),
+                "research_trigger": allusion.get("research_trigger"),
+                "contextual_meaning": allusion.get("contextual_meaning"),
+                "translation_constraint": allusion.get("translation_constraint"),
+            })
+    return allusions
+
+
+def load_external_lookup_receipts(path: Path, source: Path) -> dict[str, dict]:
+    if not path.is_file():
+        raise StrategyMError("external-lookup-receipts.jsonl is missing")
+    current_source_hash = sha256_file(source)
+    receipts: dict[str, dict] = {}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            receipt = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise StrategyMError(
+                f"external lookup receipt {line_number} is invalid JSON"
+            ) from exc
+        required = {
+            "schema_version", "receipt_id", "source_sha256", "paragraph_id",
+            "source_expression", "query", "url", "source_type", "title",
+            "retrieved_at", "support", "content_sha256", "accepted",
+        }
+        if not isinstance(receipt, dict) or not required <= set(receipt):
+            raise StrategyMError(f"external lookup receipt {line_number} is incomplete")
+        receipt_id = receipt["receipt_id"]
+        if receipt.get("schema_version") != 1 or not isinstance(receipt_id, str) or not receipt_id:
+            raise StrategyMError(f"external lookup receipt {line_number} has invalid identity")
+        if receipt_id in receipts:
+            raise StrategyMError("external lookup receipts contain a duplicate receipt_id")
+        if receipt["source_sha256"] != current_source_hash:
+            raise StrategyMError("external lookup receipt source SHA-256 is stale")
+        if receipt["source_type"] not in EXTERNAL_TERM_SOURCES:
+            raise StrategyMError("external lookup receipt has an inadmissible source type")
+        if not isinstance(receipt["url"], str) or not receipt["url"].startswith(("https://", "http://")):
+            raise StrategyMError("external lookup receipt has an invalid URL")
+        for field in (
+            "paragraph_id", "source_expression", "query", "title", "retrieved_at", "support"
+        ):
+            if not isinstance(receipt[field], str) or not receipt[field].strip():
+                raise StrategyMError(f"external lookup receipt has an empty {field}")
+        if not isinstance(receipt["accepted"], bool):
+            raise StrategyMError("external lookup receipt accepted must be boolean")
+        if not isinstance(receipt["content_sha256"], str) or SHA256_RE.fullmatch(receipt["content_sha256"]) is None:
+            raise StrategyMError("external lookup receipt has an invalid content SHA-256")
+        receipts[receipt_id] = receipt
+    return receipts
+
+
+def validate_allusion_decisions(
+    source: Path,
+    analysis: Path,
+    decisions: Path,
+    lookup_receipts: Path,
+) -> dict:
+    source = source.expanduser().resolve()
+    analysis = analysis.expanduser().resolve()
+    for label, path in (
+        ("source.dj", source),
+        ("source-analysis.json", analysis),
+        ("allusion-decisions.json", decisions.expanduser().resolve()),
+        ("external-lookup-receipts.jsonl", lookup_receipts.expanduser().resolve()),
+    ):
+        if not path.is_file():
+            raise StrategyMError(f"{label} is missing")
+    decisions = decisions.expanduser().resolve()
+    lookup_receipts = lookup_receipts.expanduser().resolve()
+    value = load_json(decisions)
+    current_source_hash = sha256_file(source)
+    current_analysis_hash = sha256_file(analysis)
+    if value.get("schema_version") != 1:
+        raise StrategyMError("allusion-decisions schema_version must be 1")
+    if value.get("source_sha256") != current_source_hash:
+        raise StrategyMError("allusion-decisions source SHA-256 is stale")
+    if value.get("source_analysis_sha256") != current_analysis_hash:
+        raise StrategyMError("allusion-decisions source-analysis SHA-256 is stale")
+    if value.get("lookup_receipts_sha256") != sha256_file(lookup_receipts):
+        raise StrategyMError("allusion-decisions lookup receipt hash is stale")
+    expected = source_analysis_allusions(source, analysis)
+    expected_by_key = {
+        (item["paragraph_id"], item["source_expression"]): item for item in expected
+    }
+    receipts = load_external_lookup_receipts(lookup_receipts, source)
+    items = value.get("items")
+    if not isinstance(items, list):
+        raise StrategyMError("allusion-decisions items must be an array")
+    seen: set[tuple[str, str]] = set()
+    frozen: list[dict] = []
+    human_review: list[dict] = []
+    for index, item in enumerate(items, start=1):
+        if not isinstance(item, dict):
+            raise StrategyMError(f"allusion-decisions item {index} must be an object")
+        key = (item.get("paragraph_id"), item.get("source_expression"))
+        expected_item = expected_by_key.get(key)
+        if expected_item is None or key in seen:
+            raise StrategyMError(f"allusion-decisions item {index} is extra or duplicated")
+        seen.add(key)
+        if item.get("source_text_sha256") != expected_item["source_text_sha256"]:
+            raise StrategyMError(f"allusion-decisions item {index} has stale source context")
+        if item.get("trigger") not in TERM_TRIGGERS:
+            raise StrategyMError(f"allusion-decisions item {index} has an invalid trigger")
+        candidates = item.get("candidates")
+        if not isinstance(candidates, list) or not candidates or not all(
+            isinstance(candidate, str) and candidate.strip() for candidate in candidates
+        ):
+            raise StrategyMError(f"allusion-decisions item {index} has no candidate renderings")
+        for field in ("contextual_meaning", "translation_constraint", "rationale"):
+            if not isinstance(item.get(field), str) or not item[field].strip():
+                raise StrategyMError(f"allusion-decisions item {index} is missing {field}")
+        for field in ("contextual_meaning", "translation_constraint"):
+            if item[field] != expected_item[field]:
+                raise StrategyMError(
+                    f"allusion-decisions item {index} does not match the Flash semantic constraint"
+                )
+        receipt_ids = item.get("external_lookup_receipt_ids")
+        if not isinstance(receipt_ids, list) or not receipt_ids or len(receipt_ids) != len(set(receipt_ids)):
+            raise StrategyMError(f"allusion-decisions item {index} lacks external lookup receipts")
+        matched = []
+        for receipt_id in receipt_ids:
+            receipt = receipts.get(receipt_id)
+            if (
+                receipt is None
+                or receipt["paragraph_id"] != key[0]
+                or receipt["source_expression"] != key[1]
+            ):
+                raise StrategyMError(f"allusion-decisions item {index} references unrelated evidence")
+            matched.append(receipt)
+        if not any(receipt["accepted"] for receipt in matched):
+            raise StrategyMError(f"allusion-decisions item {index} has no accepted external evidence")
+        confidence = item.get("confidence")
+        status = item.get("status")
+        if confidence not in {"high", "medium", "low"}:
+            raise StrategyMError(f"allusion-decisions item {index} has invalid confidence")
+        if status == "human_review":
+            if confidence == "high":
+                raise StrategyMError(f"allusion-decisions item {index} cannot be high-confidence human_review")
+            human_review.append({"source_expression": key[1], "paragraph_id": key[0]})
+            continue
+        if status != "frozen" or confidence != "high":
+            raise StrategyMError(f"allusion-decisions item {index} must be high-confidence frozen or human_review")
+        selected = item.get("selected")
+        if not isinstance(selected, str) or not selected.strip() or selected not in candidates:
+            raise StrategyMError(f"allusion-decisions item {index} has an invalid selected rendering")
+        frozen.append({
+            "source_expression": key[1],
+            "paragraph_id": key[0],
+            "selected": selected,
+            "evidence_receipt_ids": receipt_ids,
+        })
+    missing = sorted(set(expected_by_key) - seen)
+    if missing:
+        raise StrategyMError("Flash cultural allusions are missing from allusion-decisions.json")
+    referenced_ids = {
+        receipt_id for item in items for receipt_id in item.get("external_lookup_receipt_ids", [])
+    }
+    unreferenced = sorted(set(receipts) - referenced_ids)
+    if unreferenced:
+        raise StrategyMError("external lookup receipts contain unreferenced evidence")
+    return {
+        "source_sha256": current_source_hash,
+        "source_analysis_sha256": current_analysis_hash,
+        "allusion_count": len(expected),
+        "frozen_count": len(frozen),
+        "human_review_count": len(human_review),
+        "lookup_receipt_count": len(receipts),
+        "frozen": frozen,
+        "human_review": human_review,
+    }
+
+
 def validate_frozen_terms_in_map(term_map: Path, summary: dict) -> None:
     value = load_json(term_map)
     terms = value.get("terms")
@@ -512,6 +743,47 @@ def record_term_decisions(project: Path, source: Path, decisions: Path, term_map
         "inputs": file_hashes([source, term_map]),
         "outputs": file_hashes([decisions]),
         "summary": {**summary, "strategy_fixed_terms": fixed_term_summary},
+        "exit_code": 0,
+    }
+    append_receipt(project, receipt)
+    return receipt
+
+
+def record_allusion_decisions(
+    project: Path,
+    source: Path,
+    analysis: Path,
+    decisions: Path,
+    lookup_receipts: Path,
+) -> dict:
+    verify_ready()
+    instruction = validate_instruction_receipt(project)
+    analysis_hash = sha256_file(analysis)
+    prior_receipts = read_receipts(project)
+    analysis_was_receipted = any(
+        receipt.get("workflow_stage") in {"flash_analysis", "flash_analysis_reuse"}
+        and any(
+            output.get("absolute_path") == str(analysis.resolve())
+            and output.get("sha256") == analysis_hash
+            for output in receipt.get("outputs", [])
+        )
+        for receipt in prior_receipts
+    )
+    if not analysis_was_receipted:
+        raise StrategyMError("allusion research requires a current receipted Flash analysis")
+    summary = validate_allusion_decisions(
+        source, analysis, decisions, lookup_receipts
+    )
+    receipt = {
+        "schema_version": 1,
+        "receipt_id": str(uuid.uuid4()),
+        "workflow_stage": "allusion_research",
+        "kind": "external_cultural_evidence",
+        "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "instruction_receipt_id": instruction["receipt_id"],
+        "inputs": file_hashes([source, analysis, lookup_receipts]),
+        "outputs": file_hashes([decisions]),
+        "summary": summary,
         "exit_code": 0,
     }
     append_receipt(project, receipt)
@@ -666,8 +938,31 @@ def finalize(project: Path, input_type: str) -> dict:
     except StrategyMError as exc:
         term_validation_error = str(exc)
     unresolved_terms = bool(term_validation_error or (term_summary and term_summary["human_review_count"]))
-    pipeline_complete = not missing and not stale and not qa_failures and not semantic_contract_error and not unresolved_review_blockers and not unresolved_terms
-    status = "needs_human" if unresolved_review_blockers or unresolved_terms else "ai_draft" if pipeline_complete else "blocked"
+    allusion_validation_error = None
+    allusion_summary = None
+    try:
+        allusion_summary = validate_allusion_decisions(
+            project / "source.dj",
+            project / "source-analysis.json",
+            project / "allusion-decisions.json",
+            project / "external-lookup-receipts.jsonl",
+        )
+    except StrategyMError as exc:
+        allusion_validation_error = str(exc)
+    unresolved_allusions = bool(
+        allusion_validation_error
+        or (allusion_summary and allusion_summary["human_review_count"])
+    )
+    pipeline_complete = (
+        not missing and not stale and not qa_failures and not semantic_contract_error
+        and not unresolved_review_blockers and not unresolved_terms
+        and not unresolved_allusions
+    )
+    status = (
+        "needs_human"
+        if unresolved_review_blockers or unresolved_terms or unresolved_allusions
+        else "ai_draft" if pipeline_complete else "blocked"
+    )
     manifest = {
         "schema_version": 1,
         "strategy_id": "M",
@@ -692,6 +987,8 @@ def finalize(project: Path, input_type: str) -> dict:
         "term_decisions": term_summary,
         "strategy_fixed_terms": fixed_term_summary,
         "term_decisions_error": term_validation_error,
+        "allusion_decisions": allusion_summary,
+        "allusion_decisions_error": allusion_validation_error,
         "transcription_ambiguities": load_json(project / "transcription-ambiguities.json").get("items", []) if (project / "transcription-ambiguities.json").is_file() else [],
         "human_approval": None,
     }
@@ -743,6 +1040,12 @@ def parser() -> argparse.ArgumentParser:
     terms.add_argument("--source", type=Path, required=True)
     terms.add_argument("--decisions", type=Path, required=True)
     terms.add_argument("--term-map", type=Path, required=True)
+    allusions = sub.add_parser("record-allusion-decisions")
+    allusions.add_argument("--project", type=Path, required=True)
+    allusions.add_argument("--source", type=Path, required=True)
+    allusions.add_argument("--analysis", type=Path, required=True)
+    allusions.add_argument("--decisions", type=Path, required=True)
+    allusions.add_argument("--lookup-receipts", type=Path, required=True)
     reuse = sub.add_parser("reuse-source-analysis")
     reuse.add_argument("--project", type=Path, required=True)
     reuse.add_argument("--source", type=Path, required=True)
@@ -779,6 +1082,11 @@ def main() -> int:
             value = record_model(args.project.resolve(), args.stage, args.provider, args.model, args.effort, args.prompt_sha256, args.input, args.output, args.metadata)
         elif args.command == "record-term-decisions":
             value = record_term_decisions(args.project.resolve(), args.source.resolve(), args.decisions.resolve(), args.term_map.resolve())
+        elif args.command == "record-allusion-decisions":
+            value = record_allusion_decisions(
+                args.project.resolve(), args.source.resolve(), args.analysis.resolve(),
+                args.decisions.resolve(), args.lookup_receipts.resolve(),
+            )
         elif args.command == "reuse-source-analysis":
             value = reuse_source_analysis(args.project.resolve(), args.source.resolve(), args.analysis.resolve())
         else:

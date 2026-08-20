@@ -1,9 +1,10 @@
-# M 1.0 model policy
+# M 1.0.2 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
 
-- V4 Flash `high`: source-only semantic analysis; exact-source-hash reuse.
+- V4 Flash `high`: source-only semantic analysis; exact-source-hash reuse;
+  paragraph-level temporal, elliptical-subject, and cultural-allusion gates.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the

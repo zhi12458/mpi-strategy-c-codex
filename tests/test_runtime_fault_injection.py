@@ -48,6 +48,28 @@ def write_clear_term_decisions(project: Path) -> None:
         "items": [],
     })
     write(project / "term-map.yaml", '{"terms": []}\n')
+    runtime.atomic_json(project / "source-analysis.json", {
+        "schema_version": 3,
+        "source_sha256": runtime.sha256_file(source),
+        "provider": "deepseek",
+        "model": "deepseek-v4-flash",
+        "configuration": {"reasoning_effort": "high"},
+        "paragraphs": [{
+            "paragraph_id": "L1",
+            "temporal_relations": [],
+            "elliptical_subject": [],
+            "cultural_allusions": [],
+            "must_preserve": ["保留原义"],
+        }],
+    })
+    write(project / "external-lookup-receipts.jsonl", "")
+    runtime.atomic_json(project / "allusion-decisions.json", {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "source_analysis_sha256": runtime.sha256_file(project / "source-analysis.json"),
+        "lookup_receipts_sha256": runtime.sha256_file(project / "external-lookup-receipts.jsonl"),
+        "items": [],
+    })
 
 
 def write_semantic_review(project: Path, *, status="clear", blocking_findings=0) -> None:
@@ -63,13 +85,15 @@ def write_semantic_review(project: Path, *, status="clear", blocking_findings=0)
             "negation": "not_present",
             "degree": "not_present",
             "elliptical_subject": "not_present",
+            "cultural_allusions": "not_present",
             "semantic_roles": "preserved",
             "actor_or_state_holder": "本段角色已核对。",
             "cause_or_instrument": "本段无相关原因或工具。",
+            "allusion_or_quotation": "本段无相关典故或引语。",
             "finding_ids": [],
         })
     write(project / "semantic-review.json", json.dumps({
-        "schema_version": 2,
+        "schema_version": 3,
         "status": status,
         "blocking_findings": blocking_findings,
         "paragraph_audits": audits,
@@ -421,10 +445,46 @@ def test_sol_medium_is_default_and_high_is_only_targeted_fallback(installation, 
         "exit_code": 0,
         "outputs": [],
     })
+    runtime.append_receipt(project, {
+        "receipt_id": "allusion-research",
+        "workflow_stage": "allusion_research",
+        "exit_code": 0,
+        "outputs": [],
+    })
+    term_map = project / "term-map.yaml"
+    analysis = project / "source-analysis.json"
+    allusion_decisions = project / "allusion-decisions.json"
+    write(term_map, '{"terms": []}\n')
+    runtime.atomic_json(analysis, {
+        "schema_version": 3,
+        "source_sha256": runtime.sha256_file(source),
+        "provider": "deepseek",
+        "model": "deepseek-v4-flash",
+        "configuration": {"reasoning_effort": "high"},
+        "paragraphs": [{
+            "paragraph_id": "L1", "temporal_relations": [],
+            "elliptical_subject": [], "cultural_allusions": [],
+            "must_preserve": ["保留原义"],
+        }],
+    })
+    write(project / "external-lookup-receipts.jsonl", "")
+    runtime.atomic_json(allusion_decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "source_analysis_sha256": runtime.sha256_file(analysis),
+        "lookup_receipts_sha256": runtime.sha256_file(project / "external-lookup-receipts.jsonl"),
+        "items": [],
+    })
+    runtime.append_receipt(project, {
+        "receipt_id": "allusion-research-current",
+        "workflow_stage": "allusion_research",
+        "exit_code": 0,
+        "outputs": [runtime.file_record(allusion_decisions)],
+    })
 
     receipt = strategy_m.record_model(
         project, "sol_translation", "openai-codex", "gpt-5.6-sol", "medium",
-        "0" * 64, [source], [medium_output], None,
+        "0" * 64, [source, term_map, analysis, allusion_decisions], [medium_output], None,
     )
     assert receipt["reasoning_effort"] == "medium"
     with pytest.raises(runtime.StrategyMError, match="release lock"):
@@ -612,14 +672,19 @@ def test_non_mpi_frozen_term_requires_admissible_web_evidence(installation, tmp_
     assert strategy_m.validate_term_decisions(source, decisions)["human_review_count"] == 1
 
 
-def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path):
+def test_du_shan_qi_shen_blocks_until_external_allusion_evidence_is_receipted(
+    installation, tmp_path
+):
     project = tmp_path / "project"
     runtime.begin_project(project, "document")
     source = project / "source.dj"
     analysis = project / "source-analysis.json"
-    write(source, "原文\n")
+    decisions = project / "allusion-decisions.json"
+    lookups = project / "external-lookup-receipts.jsonl"
+    source_text = "倘生不逢时，才会退隐江湖、独善其身。"
+    write(source, source_text + "\n")
     runtime.atomic_json(analysis, {
-        "schema_version": 2,
+        "schema_version": 3,
         "source_sha256": runtime.sha256_file(source),
         "provider": "deepseek",
         "model": "deepseek-v4-flash",
@@ -628,6 +693,96 @@ def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path
             "paragraph_id": "L1",
             "temporal_relations": [],
             "elliptical_subject": [],
+            "cultural_allusions": [{
+                "expression": "独善其身",
+                "research_trigger": "mpi_missing",
+                "contextual_meaning": "退隐后修养自身德行并保持节操。",
+                "translation_constraint": "采用古义，不得误作自私自利。",
+            }],
+            "must_preserve": ["独善其身采用古义"],
+        }],
+    })
+    runtime.append_receipt(project, {
+        "receipt_id": "flash",
+        "workflow_stage": "flash_analysis",
+        "exit_code": 0,
+        "outputs": [runtime.file_record(analysis)],
+    })
+    write(lookups, "")
+    runtime.atomic_json(decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "source_analysis_sha256": runtime.sha256_file(analysis),
+        "lookup_receipts_sha256": runtime.sha256_file(lookups),
+        "items": [],
+    })
+    with pytest.raises(runtime.StrategyMError, match="missing from allusion-decisions"):
+        strategy_m.validate_allusion_decisions(source, analysis, decisions, lookups)
+
+    lookup = {
+        "schema_version": 1,
+        "receipt_id": "lookup-mencius",
+        "source_sha256": runtime.sha256_file(source),
+        "paragraph_id": "L1",
+        "source_expression": "独善其身",
+        "query": "独善其身 Mencius authoritative English translation",
+        "url": "https://ctext.org/mengzi/jin-xin-i/zh",
+        "source_type": "academic",
+        "title": "孟子·尽心上",
+        "retrieved_at": "2026-08-20T00:00:00Z",
+        "support": "原典与正式英译支持独处修养自身德行的古义。",
+        "content_sha256": "a" * 64,
+        "accepted": True,
+    }
+    write(lookups, json.dumps(lookup, ensure_ascii=False) + "\n")
+    runtime.atomic_json(decisions, {
+        "schema_version": 1,
+        "source_sha256": runtime.sha256_file(source),
+        "source_analysis_sha256": runtime.sha256_file(analysis),
+        "lookup_receipts_sha256": runtime.sha256_file(lookups),
+        "items": [{
+            "paragraph_id": "L1",
+            "source_expression": "独善其身",
+            "source_text_sha256": runtime.sha256_bytes(source_text.encode("utf-8")),
+            "trigger": "mpi_missing",
+            "candidates": [
+                "cultivate one's own character",
+                "preserve one's integrity",
+            ],
+            "contextual_meaning": "退隐后修养自身德行并保持节操。",
+            "translation_constraint": "采用古义，不得误作自私自利。",
+            "external_lookup_receipt_ids": ["lookup-mencius"],
+            "selected": "cultivate one's own character",
+            "rationale": "The classical sense fits the withdrawal context.",
+            "confidence": "high",
+            "status": "frozen",
+        }],
+    })
+    receipt = strategy_m.record_allusion_decisions(
+        project, source, analysis, decisions, lookups
+    )
+    assert receipt["workflow_stage"] == "allusion_research"
+    assert receipt["summary"]["allusion_count"] == 1
+    assert receipt["summary"]["lookup_receipt_count"] == 1
+
+
+def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    analysis = project / "source-analysis.json"
+    write(source, "原文\n")
+    runtime.atomic_json(analysis, {
+        "schema_version": 3,
+        "source_sha256": runtime.sha256_file(source),
+        "provider": "deepseek",
+        "model": "deepseek-v4-flash",
+        "configuration": {"reasoning_effort": "high"},
+        "paragraphs": [{
+            "paragraph_id": "L1",
+            "temporal_relations": [],
+            "elliptical_subject": [],
+            "cultural_allusions": [],
             "must_preserve": ["保留原义"],
         }],
     })
@@ -636,9 +791,9 @@ def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path
     value = runtime.load_json(analysis)
     value["schema_version"] = 1
     runtime.atomic_json(analysis, value)
-    with pytest.raises(runtime.StrategyMError, match="schema_version 2"):
+    with pytest.raises(runtime.StrategyMError, match="schema_version 3"):
         strategy_m.reuse_source_analysis(project, source, analysis)
-    value["schema_version"] = 2
+    value["schema_version"] = 3
     runtime.atomic_json(analysis, value)
     write(source, "原文已改\n")
     with pytest.raises(runtime.StrategyMError, match="source SHA-256 changed"):

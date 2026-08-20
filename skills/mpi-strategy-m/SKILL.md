@@ -32,12 +32,19 @@ extraction, terminology, Djot, DOCX, subtitle, or deterministic QA code.
    `must_preserve`. For Buddhist aphorisms, compact classical clauses,
    parallel formulas, and ellipsis, Flash must populate `elliptical_subject`
    and distinguish agent, cause, instrument, and state holder.
+   Flash must also populate `cultural_allusions` for idioms, proverbs,
+   classical/canonical/scriptural quotations, fixed classical expressions,
+   and historical references. Every declared expression requires an audited
+   external lookup, including a content hash and accepted authoritative URL,
+   before Sol may start. `独善其身` is a mandatory regression expression and
+   must distinguish its Mencian self-cultivation/integrity sense from its later
+   self-interested pejorative sense.
 4. Run two independent Pro bilingual reviews. Sol `high` is allowed only for
    targeted title/critical/major findings that remain after review two; never
    use it for a full-document M translation.
    Each Pro review must emit one paragraph audit per nonblank source line,
    separately checking temporal/aspect, condition, negation, degree,
-   elliptical subject, and semantic roles. Reverse-check who acts or bears the
+   elliptical subject, cultural allusions, and semantic roles. Reverse-check who acts or bears the
    state and why/by what; never promote wisdom, compassion, or another cause or
    instrument to the English subject merely to preserve Chinese parallelism.
 5. Run every toolkit entry point through `strategy_m.py run-tool` so receipts
@@ -45,6 +52,10 @@ extraction, terminology, Djot, DOCX, subtitle, or deterministic QA code.
    whenever their Chinese source terms occur.
 6. Unresolved terms or review blockers require human judgment. Never average
    away a disagreement.
+   Missing `allusion-decisions.json`, missing or stale
+   `external-lookup-receipts.jsonl`, or an allusion omitted from either artifact
+   blocks translation and finalization; never silently treat it as an ordinary
+   phrase.
 7. Run `strategy_m.py finalize`. Deliver only if `pipeline_complete` is true;
    every result remains `ai_draft` until a named Buddhist/Dharma reviewer
    approves it.
