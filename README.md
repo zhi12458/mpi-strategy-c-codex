@@ -1,28 +1,34 @@
 # mpi-strategy-m-codex
 
 Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
-translation. M 1.0.3 fixes the model roles as V4 Flash source analysis,
+translation. M 1.0.4 fixes the model roles as V4 Flash source analysis,
 GPT-5.6-Sol Medium drafting/accuracy/concision, two V4 Pro bilingual reviews,
 and Sol High targeted fallback after review two only.
 
-M 1.0.3 also makes cultural allusions an audited hard gate: Flash enumerates
+M 1.0.4 also makes cultural allusions an audited hard gate: Flash enumerates
 them, authoritative web evidence is receipted before Sol starts, and Pro checks
 their contextual meaning independently. `独善其身` is a release regression.
 
-M 1.0.3 also retains the temporal/aspect, compressed-clause implicit
+M 1.0.4 also retains the temporal/aspect, compressed-clause implicit
 subjects, semantic-role separation, and per-paragraph Pro audit coverage
 machine-enforced release gates.
 
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `0d1cce379df7d6a5d50b8022460233324239ccee`;
-- `translation-toolkit` at `636bc1228f68e17366bbb531fa2bc81a4f8fc03a`.
+- `mpi-translations` at `f6ed33c37fcf4183a65a3c75a087bc78c4cf2338`;
+- `translation-toolkit` at `b450aa73092e986985120122d7c4de393b0eedcb`.
 
-M 1.0.3 also closes the fixed-term provenance gap: the locked toolkit now
+M 1.0.4 also closes the fixed-term provenance gap: the locked toolkit now
 searches MPI first and accepts explicit, auditable `--fixed-term` arguments,
 so release terms such as `济群法师` → `Master Jiqun` are created by toolkit
 rather than by an unreceipted edit.
+
+M 1.0.4 bounds long-document Flash requests without reducing semantic
+coverage. Each serial batch carries a complete paragraph structure index, the
+exact requested text plus three neighbouring paragraphs on each side, and only
+terms present in that window. Every frozen paragraph is still analyzed, and
+the full local v3 schema remains the acceptance gate.
 
 They are verified forks, not official upstream releases. Moving branches are
 never followed. Every installation must pass repository verification, both

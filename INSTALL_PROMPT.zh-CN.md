@@ -15,7 +15,7 @@
    `external-lookup-receipts.jsonl` 或 `allusion-decisions.json` 时 Sol
    被阻止，补齐权威网页证据后才允许继续。
 6. 只有所有门禁通过，才能原子写入含 `strategy_id: M`、
-   `workflow_version: 1.0.3`、模型职责和术语政策版本的 `READY.json`，并
+   `workflow_version: 1.0.4`、模型职责和术语政策版本的 `READY.json`，并
    将 `ready` 设为 `true`。
 7. M 安装验证成功后才停用旧 `$mpi-strategy-c` 自动入口；旧源码、
    运行目录和基准资料保持可恢复。
