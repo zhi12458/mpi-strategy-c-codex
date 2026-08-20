@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Install and execute the audited MPI Strategy C state machine."""
+"""Install and execute the audited MPI Strategy M state machine."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -16,7 +17,7 @@ from runtime import (
     INSTRUCTION_RECEIPT_NAME,
     MANIFEST_NAME,
     RECEIPTS_NAME,
-    StrategyCError,
+    StrategyMError,
     append_receipt,
     atomic_json,
     begin_project,
@@ -41,7 +42,9 @@ STAGE_SCRIPTS = {
     "target_freeze": {"freeze-target.py"},
     "bilingual_1": {"gen-bilingual.py"},
     "pro_review_1": {"deepseek-review.py"},
-    "target_refreeze": {"freeze-target.py"},
+    "target_accuracy_refreeze": {"freeze-target.py"},
+    "bilingual_2": {"gen-bilingual.py"},
+    "target_concision_refreeze": {"freeze-target.py"},
     "bilingual_final": {"gen-bilingual.py"},
     "pro_review_2": {"deepseek-review.py"},
     "translation_qa": {"check-translation.py"},
@@ -55,17 +58,22 @@ STAGE_SCRIPTS = {
 }
 DOCUMENT_STAGES = {
     "source_extraction", "terminology", "terminology_search", "terminology_decisions", "flash_analysis", "target_freeze",
-    "bilingual_1", "pro_review_1", "target_refreeze", "bilingual_final",
+    "bilingual_1", "pro_review_1", "target_accuracy_refreeze", "bilingual_2",
+    "target_concision_refreeze", "bilingual_final",
     "pro_review_2", "translation_qa", "target_docx", "bilingual_docx",
     "target_docx_qa", "bilingual_docx_qa", "subtitle_na",
 }
 MEDIA_STAGES = (DOCUMENT_STAGES - {"subtitle_na"}) | {"media_transcription", "subtitle_generation", "subtitle_qa"}
-REQUIRED_MODEL_STAGES = {"flash_model", "sol_translation", "pro_model_1", "sol_revision", "pro_model_2"}
+REQUIRED_MODEL_STAGES = {
+    "flash_model", "sol_translation", "pro_model_1",
+    "sol_accuracy_revision", "sol_concision", "pro_model_2",
+}
 OPTIONAL_MODEL_STAGES = {"sol_fallback"}
 MODEL_STAGES = REQUIRED_MODEL_STAGES | OPTIONAL_MODEL_STAGES
 TERM_TRIGGERS = {"mpi_missing", "mpi_conflict", "context_ambiguity", "high_risk", "model_uncertain"}
 MPI_TERM_SOURCES = {"DoT定稿", "内部特色词", "佛教术语", "经论名"}
 EXTERNAL_TERM_SOURCES = {"cbeta", "bdk", "nti_reader", "84000", "academic", "university", "buddhist_institution"}
+STRUCTURAL_RE = re.compile(r"\{#[^{}]*\}|\(\s*#?[^{}\n]*\)")
 
 
 def safe_receipt_base(stage: str, started: float, command: list[str], cwd: Path) -> dict:
@@ -83,10 +91,10 @@ def deepseek_environment() -> dict[str, str]:
     try:
         import keyring
     except ImportError as exc:
-        raise StrategyCError("Python keyring is required") from exc
-    secret = keyring.get_password("mpi-strategy-c-deepseek", "default")
+        raise StrategyMError("Python keyring is required") from exc
+    secret = keyring.get_password("mpi-strategy-m-deepseek", "default")
     if not secret:
-        raise StrategyCError("DeepSeek credential is missing from the operating-system vault")
+        raise StrategyMError("DeepSeek credential is missing from the operating-system vault")
     return {"DEEPSEEK_API_KEY": secret}
 
 
@@ -94,18 +102,18 @@ def run_audited_tool(project: Path, stage: str, script_name: str, arguments: lis
     verify_ready()
     instruction = validate_instruction_receipt(project)
     if stage not in STAGE_SCRIPTS or script_name not in STAGE_SCRIPTS[stage]:
-        raise StrategyCError(f"script {script_name} is not allowed for stage {stage}")
+        raise StrategyMError(f"script {script_name} is not allowed for stage {stage}")
     reject_secret_arguments(arguments)
     toolkit_info = instruction["translation_toolkit"]
     toolkit = Path(toolkit_info["absolute_path"])
     script = (toolkit / "scripts" / script_name).resolve()
     expected_hash = toolkit_info["critical_file_sha256"].get(f"scripts/{script_name}")
     if not script.is_file() or not expected_hash or sha256_file(script) != expected_hash:
-        raise StrategyCError("locked toolkit script is missing or changed")
+        raise StrategyMError("locked toolkit script is missing or changed")
     if stage == "flash_analysis" and (project / "target.dj").exists():
-        raise StrategyCError("Flash analysis must run before target.dj exists")
+        raise StrategyMError("Flash analysis must run before target.dj exists")
     if stage.startswith("pro_review") and any("source-analysis" in value for value in arguments):
-        raise StrategyCError("Pro review must not receive Flash source analysis")
+        raise StrategyMError("Pro review must not receive Flash source analysis")
     command = [sys.executable, str(script), *arguments]
     started = time.time()
     receipt = safe_receipt_base(stage, started, command, project)
@@ -135,34 +143,34 @@ def run_audited_tool(project: Path, stage: str, script_name: str, arguments: lis
     })
     append_receipt(project, receipt)
     if completed.returncode:
-        raise StrategyCError(f"toolkit stage {stage} failed with exit code {completed.returncode}")
+        raise StrategyMError(f"toolkit stage {stage} failed with exit code {completed.returncode}")
     if len(receipt["outputs"]) != len(outputs):
-        raise StrategyCError(f"toolkit stage {stage} did not produce every declared output")
+        raise StrategyMError(f"toolkit stage {stage} did not produce every declared output")
     for output in outputs:
         if output.stat().st_mtime + 1 < started:
-            raise StrategyCError(f"toolkit stage {stage} produced a stale output")
+            raise StrategyMError(f"toolkit stage {stage} produced a stale output")
     if stage == "terminology":
         receipt_files = [path for path in outputs if path.name == "term-search-receipts.jsonl"]
         if len(receipt_files) != 1:
-            raise StrategyCError("terminology stage must declare term-search-receipts.jsonl as an output")
+            raise StrategyMError("terminology stage must declare term-search-receipts.jsonl as an output")
         rows = []
         for line in receipt_files[0].read_text(encoding="utf-8").splitlines():
             if line.strip():
                 try:
                     rows.append(json.loads(line))
                 except json.JSONDecodeError as exc:
-                    raise StrategyCError("toolkit term-search receipt is invalid") from exc
+                    raise StrategyMError("toolkit term-search receipt is invalid") from exc
         if not rows:
-            raise StrategyCError("MPI terminology search was not actually called")
+            raise StrategyMError("MPI terminology search was not actually called")
         search_script = toolkit / "terms-database" / "search.py"
         search_hash = toolkit_info["critical_file_sha256"].get("terms-database/search.py")
         database = toolkit / "terms-database" / "termlib.sqlite"
         for row in rows:
             if row.get("search_script") != str(search_script.resolve()) or row.get("search_script_sha256") != search_hash or row.get("exit_code") != 0:
-                raise StrategyCError("MPI term-search child receipt does not match the locked toolkit")
+                raise StrategyMError("MPI term-search child receipt does not match the locked toolkit")
             child_arguments = row.get("arguments")
             if not isinstance(child_arguments, list) or len(child_arguments) < 3:
-                raise StrategyCError("MPI term-search child receipt omitted its full arguments")
+                raise StrategyMError("MPI term-search child receipt omitted its full arguments")
             child = {
                 "schema_version": 1,
                 "receipt_id": str(uuid.uuid4()),
@@ -192,7 +200,7 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
     verify_ready()
     validate_instruction_receipt(project)
     if stage not in MODEL_STAGES or len(prompt_sha256) != 64:
-        raise StrategyCError("invalid model stage or prompt SHA-256")
+        raise StrategyMError("invalid model stage or prompt SHA-256")
     lock = load_lock()["models"]
     if stage == "flash_model":
         role = "source_analysis"
@@ -204,19 +212,37 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
         role = "translation"
     expected = lock[role]
     if (provider, model, effort) != (expected["provider"], expected["model"], expected["reasoning_effort"]):
-        raise StrategyCError("model identity or reasoning effort does not match the release lock")
+        raise StrategyMError("model identity or reasoning effort does not match the release lock")
+    successful = {
+        item.get("workflow_stage")
+        for item in read_receipts(project)
+        if item.get("exit_code", 0) == 0
+    }
+    prerequisites = {
+        "sol_translation": ({"flash_model"}, {"flash_analysis_reuse"}),
+        "pro_model_1": ({"sol_translation", "pro_review_1"},),
+        "sol_accuracy_revision": ({"pro_model_1"},),
+        "sol_concision": ({"sol_accuracy_revision"},),
+        "pro_model_2": ({"sol_concision", "pro_review_2"},),
+    }
+    alternatives = prerequisites.get(stage)
+    if alternatives and not any(required <= successful for required in alternatives):
+        raise StrategyMError(f"model stage {stage} is out of order")
+    if stage == "sol_concision":
+        input_names = {path.name for path in inputs}
+        if "source.dj" not in input_names or not input_names.intersection({"sol-revised.dj", "target.dj"}):
+            raise StrategyMError("Sol concision must recheck source.dj against the accuracy-revised English")
     if stage == "sol_fallback":
-        successful = {item.get("workflow_stage") for item in read_receipts(project) if item.get("exit_code", 0) == 0}
         second_review = project / "semantic-review.json"
         if "pro_model_2" not in successful or not second_review.is_file():
-            raise StrategyCError("Sol high fallback requires a completed second Pro review")
+            raise StrategyMError("Sol high fallback requires a completed second Pro review")
         certificate = load_json(second_review)
         blocking = certificate.get("status") == "blocking" or int(certificate.get("blocking_findings", 0)) > 0
         if not blocking:
-            raise StrategyCError("Sol high fallback is allowed only for remaining critical/major blockers")
+            raise StrategyMError("Sol high fallback is allowed only for remaining critical/major blockers")
         resolved_inputs = {path.expanduser().resolve() for path in inputs}
         if second_review.resolve() not in resolved_inputs:
-            raise StrategyCError("Sol high fallback must be bound to semantic-review.json")
+            raise StrategyMError("Sol high fallback must be bound to semantic-review.json")
     raw_metadata = load_json(metadata) if metadata else {}
     allowed_metadata = {
         key: raw_metadata.get(key)
@@ -245,7 +271,7 @@ def record_model(project: Path, stage: str, provider: str, model: str, effort: s
 
 def source_text_sha256(lines: list[str], line_number: int) -> str:
     if line_number < 1 or line_number > len(lines):
-        raise StrategyCError(f"term-decision line is outside source.dj: {line_number}")
+        raise StrategyMError(f"term-decision line is outside source.dj: {line_number}")
     return sha256_bytes(lines[line_number - 1].encode("utf-8"))
 
 
@@ -254,84 +280,84 @@ def validate_term_decisions(source: Path, decisions: Path) -> dict:
     decisions = decisions.expanduser().resolve()
     value = load_json(decisions)
     if value.get("schema_version") != 1:
-        raise StrategyCError("term-decisions schema_version must be 1")
+        raise StrategyMError("term-decisions schema_version must be 1")
     current_source_hash = sha256_file(source)
     if value.get("source_sha256") != current_source_hash:
-        raise StrategyCError("term-decisions source SHA-256 is stale")
+        raise StrategyMError("term-decisions source SHA-256 is stale")
     try:
         lines = source.read_text(encoding="utf-8").splitlines()
     except OSError as exc:
-        raise StrategyCError(f"could not read frozen source: {source}") from exc
+        raise StrategyMError(f"could not read frozen source: {source}") from exc
     items = value.get("items")
     if not isinstance(items, list):
-        raise StrategyCError("term-decisions items must be an array")
+        raise StrategyMError("term-decisions items must be an array")
     frozen = []
     human_review = []
     seen: set[tuple[str, tuple[int, ...]]] = set()
     for index, item in enumerate(items, start=1):
         if not isinstance(item, dict):
-            raise StrategyCError(f"term-decisions item {index} must be an object")
+            raise StrategyMError(f"term-decisions item {index} must be an object")
         source_term = item.get("source_term")
         if not isinstance(source_term, str) or not source_term.strip():
-            raise StrategyCError(f"term-decisions item {index} has no source_term")
+            raise StrategyMError(f"term-decisions item {index} has no source_term")
         trigger = item.get("trigger")
         if trigger not in TERM_TRIGGERS:
-            raise StrategyCError(f"term-decisions item {index} has an invalid trigger")
+            raise StrategyMError(f"term-decisions item {index} has an invalid trigger")
         candidates = item.get("candidates")
         if not isinstance(candidates, list) or not candidates or not all(
             isinstance(candidate, str) and candidate.strip() for candidate in candidates
         ):
-            raise StrategyCError(f"term-decisions item {index} has no candidate renderings")
+            raise StrategyMError(f"term-decisions item {index} has no candidate renderings")
         locations = item.get("locations")
         if not isinstance(locations, list) or not locations:
-            raise StrategyCError(f"term-decisions item {index} has no source locations")
+            raise StrategyMError(f"term-decisions item {index} has no source locations")
         line_numbers = []
         for location in locations:
             if not isinstance(location, dict) or not isinstance(location.get("line"), int):
-                raise StrategyCError(f"term-decisions item {index} has an invalid source location")
+                raise StrategyMError(f"term-decisions item {index} has an invalid source location")
             line_number = location["line"]
             line_numbers.append(line_number)
             if location.get("source_text_sha256") != source_text_sha256(lines, line_number):
-                raise StrategyCError(f"term-decisions item {index} has stale context at line {line_number}")
+                raise StrategyMError(f"term-decisions item {index} has stale context at line {line_number}")
         identity = (source_term, tuple(sorted(line_numbers)))
         if identity in seen:
-            raise StrategyCError(f"duplicate term-decision for {source_term} at {line_numbers}")
+            raise StrategyMError(f"duplicate term-decision for {source_term} at {line_numbers}")
         seen.add(identity)
         external_evidence = item.get("external_evidence", [])
         if not isinstance(external_evidence, list):
-            raise StrategyCError(f"term-decisions item {index} external_evidence must be an array")
+            raise StrategyMError(f"term-decisions item {index} external_evidence must be an array")
         for evidence in external_evidence:
             if not isinstance(evidence, dict) or evidence.get("source_type") not in EXTERNAL_TERM_SOURCES:
-                raise StrategyCError(f"term-decisions item {index} has inadmissible external evidence")
+                raise StrategyMError(f"term-decisions item {index} has inadmissible external evidence")
             url = evidence.get("url")
             if not isinstance(url, str) or not url.startswith(("https://", "http://")):
-                raise StrategyCError(f"term-decisions item {index} has an invalid evidence URL")
+                raise StrategyMError(f"term-decisions item {index} has an invalid evidence URL")
             if not isinstance(evidence.get("support"), str) or not evidence["support"].strip():
-                raise StrategyCError(f"term-decisions item {index} has evidence without a support note")
+                raise StrategyMError(f"term-decisions item {index} has evidence without a support note")
         for field in ("rationale", "scope", "resolution_basis"):
             if not isinstance(item.get(field), str) or not item[field].strip():
-                raise StrategyCError(f"term-decisions item {index} is missing {field}")
+                raise StrategyMError(f"term-decisions item {index} is missing {field}")
         confidence = item.get("confidence")
         if confidence not in {"high", "medium", "low"}:
-            raise StrategyCError(f"term-decisions item {index} has invalid confidence")
+            raise StrategyMError(f"term-decisions item {index} has invalid confidence")
         status = item.get("status")
         if status == "human_review":
             if confidence == "high":
-                raise StrategyCError(f"term-decisions item {index} cannot be high-confidence human_review")
+                raise StrategyMError(f"term-decisions item {index} cannot be high-confidence human_review")
             human_review.append({"source_term": source_term, "lines": line_numbers})
             continue
         if status != "frozen" or confidence != "high":
-            raise StrategyCError(f"term-decisions item {index} must be high-confidence frozen or human_review")
+            raise StrategyMError(f"term-decisions item {index} must be high-confidence frozen or human_review")
         if not isinstance(item.get("selected"), str) or not item["selected"].strip():
-            raise StrategyCError(f"term-decisions item {index} is missing selected")
+            raise StrategyMError(f"term-decisions item {index} is missing selected")
         if item["resolution_basis"] == "mpi_authoritative":
             mpi_hits = item.get("mpi_hits")
             if not isinstance(mpi_hits, list) or not any(
                 isinstance(hit, dict) and hit.get("source") in MPI_TERM_SOURCES for hit in mpi_hits
             ):
-                raise StrategyCError(f"term-decisions item {index} lacks an authoritative MPI hit")
+                raise StrategyMError(f"term-decisions item {index} lacks an authoritative MPI hit")
         elif not item.get("external_evidence"):
-            raise StrategyCError(f"term-decisions item {index} requires external evidence before freezing")
+            raise StrategyMError(f"term-decisions item {index} requires external evidence before freezing")
         frozen.append({"source_term": source_term, "selected": item["selected"], "lines": line_numbers})
     return {
         "source_sha256": current_source_hash,
@@ -347,7 +373,7 @@ def validate_frozen_terms_in_map(term_map: Path, summary: dict) -> None:
     value = load_json(term_map)
     terms = value.get("terms")
     if not isinstance(terms, list):
-        raise StrategyCError("term map must contain a terms array")
+        raise StrategyMError("term map must contain a terms array")
     indexed = {
         item.get("source"): item.get("preferred")
         for item in terms
@@ -358,7 +384,48 @@ def validate_frozen_terms_in_map(term_map: Path, summary: dict) -> None:
         if indexed.get(item["source_term"]) != item["selected"]
     ]
     if missing:
-        raise StrategyCError(f"frozen term decisions are missing from term map: {', '.join(missing)}")
+        raise StrategyMError(f"frozen term decisions are missing from term map: {', '.join(missing)}")
+
+
+def validate_strategy_fixed_terms(source: Path, term_map: Path, target: Path | None = None) -> dict:
+    """Enforce M-wide terms while ignoring Chinese inside structural Djot anchors."""
+    lock = load_lock()
+    fixed_terms = lock.get("fixed_terms", {})
+    if not isinstance(fixed_terms, dict) or not fixed_terms:
+        raise StrategyMError("release lock has no fixed M terminology policy")
+    value = load_json(term_map)
+    terms = value.get("terms")
+    if not isinstance(terms, list):
+        raise StrategyMError("term map must contain a terms array")
+    indexed = {
+        item.get("source"): item.get("preferred")
+        for item in terms
+        if isinstance(item, dict)
+    }
+    source_text = "\n".join(
+        STRUCTURAL_RE.sub("", line)
+        for line in source.read_text(encoding="utf-8").splitlines()
+    )
+    target_text = target.read_text(encoding="utf-8") if target else None
+    checked = []
+    for source_term, preferred in fixed_terms.items():
+        source_count = source_text.count(source_term)
+        if source_count == 0:
+            continue
+        if indexed.get(source_term) != preferred:
+            raise StrategyMError(f"M fixed term is missing or changed: {source_term} -> {preferred}")
+        target_count = target_text.count(preferred) if target_text is not None else None
+        if target_count is not None and target_count < source_count:
+            raise StrategyMError(
+                f"M fixed term coverage is incomplete: {source_term} {source_count} -> {preferred} {target_count}"
+            )
+        checked.append({
+            "source": source_term,
+            "preferred": preferred,
+            "source_count_excluding_structural_anchors": source_count,
+            "target_count": target_count,
+        })
+    return {"terminology_policy_version": lock["terminology_policy_version"], "checked": checked}
 
 
 def record_term_decisions(project: Path, source: Path, decisions: Path, term_map: Path) -> dict:
@@ -366,6 +433,7 @@ def record_term_decisions(project: Path, source: Path, decisions: Path, term_map
     instruction = validate_instruction_receipt(project)
     summary = validate_term_decisions(source, decisions)
     validate_frozen_terms_in_map(term_map, summary)
+    fixed_term_summary = validate_strategy_fixed_terms(source, term_map)
     receipt = {
         "schema_version": 1,
         "receipt_id": str(uuid.uuid4()),
@@ -375,7 +443,7 @@ def record_term_decisions(project: Path, source: Path, decisions: Path, term_map
         "instruction_receipt_id": instruction["receipt_id"],
         "inputs": file_hashes([source, term_map]),
         "outputs": file_hashes([decisions]),
-        "summary": summary,
+        "summary": {**summary, "strategy_fixed_terms": fixed_term_summary},
         "exit_code": 0,
     }
     append_receipt(project, receipt)
@@ -388,9 +456,9 @@ def reuse_source_analysis(project: Path, source: Path, analysis: Path) -> dict:
     value = load_json(analysis)
     expected = load_lock()["models"]["source_analysis"]
     if value.get("source_sha256") != sha256_file(source):
-        raise StrategyCError("source-analysis cannot be reused because source SHA-256 changed")
+        raise StrategyMError("source-analysis cannot be reused because source SHA-256 changed")
     if value.get("model") != expected["model"] or value.get("reasoning_effort") != expected["reasoning_effort"]:
-        raise StrategyCError("source-analysis model identity does not match the release lock")
+        raise StrategyMError("source-analysis model identity does not match the release lock")
     receipt = {
         "schema_version": 1,
         "receipt_id": str(uuid.uuid4()),
@@ -460,7 +528,7 @@ def run_media(project: Path, media: Path) -> dict:
     })
     append_receipt(project, receipt)
     if completed.returncode or len(receipt["outputs"]) != 3:
-        raise StrategyCError("media transcription failed")
+        raise StrategyMError("media transcription failed")
     return receipt
 
 
@@ -510,16 +578,22 @@ def finalize(project: Path, input_type: str) -> dict:
     unresolved_review_blockers = blockers and not fallback_cleared
     term_validation_error = None
     term_summary = None
+    fixed_term_summary = None
     try:
         term_summary = validate_term_decisions(project / "source.dj", project / "term-decisions.json")
         validate_frozen_terms_in_map(project / "term-map.yaml", term_summary)
-    except StrategyCError as exc:
+        fixed_term_summary = validate_strategy_fixed_terms(
+            project / "source.dj", project / "term-map.yaml", project / "target.dj"
+        )
+    except StrategyMError as exc:
         term_validation_error = str(exc)
     unresolved_terms = bool(term_validation_error or (term_summary and term_summary["human_review_count"]))
     pipeline_complete = not missing and not stale and not qa_failures and not unresolved_review_blockers and not unresolved_terms
     status = "needs_human" if unresolved_review_blockers or unresolved_terms else "ai_draft" if pipeline_complete else "blocked"
     manifest = {
         "schema_version": 1,
+        "strategy_id": "M",
+        "workflow_version": load_lock()["workflow_version"],
         "pipeline_complete": pipeline_complete,
         "status": status,
         "input_type": input_type,
@@ -537,13 +611,14 @@ def finalize(project: Path, input_type: str) -> dict:
         "remaining_review_blockers": unresolved_review_blockers,
         "sol_high_fallback_cleared": fallback_cleared,
         "term_decisions": term_summary,
+        "strategy_fixed_terms": fixed_term_summary,
         "term_decisions_error": term_validation_error,
         "transcription_ambiguities": load_json(project / "transcription-ambiguities.json").get("items", []) if (project / "transcription-ambiguities.json").is_file() else [],
         "human_approval": None,
     }
     atomic_json(project / MANIFEST_NAME, manifest)
     if not pipeline_complete:
-        raise StrategyCError("pipeline is not complete; inspect MANIFEST.json")
+        raise StrategyMError("pipeline is not complete; inspect MANIFEST.json")
     return manifest
 
 
@@ -610,7 +685,7 @@ def main() -> int:
                 existing = load_json(managed_root() / "READY.json")
                 model_path = Path(existing.get("whisper", {}).get("model_absolute_path", ""))
             if not model_path.is_file():
-                raise StrategyCError("repair requires the locked Whisper model path")
+                raise StrategyMError("repair requires the locked Whisper model path")
             value = install(model_path.resolve(), not args.no_install_dependencies)
         elif args.command == "doctor":
             value = {"ready": verify_ready()[0]}
@@ -631,7 +706,7 @@ def main() -> int:
             value = finalize(args.project.resolve(), args.input_type)
         print(json.dumps(value, ensure_ascii=False, indent=2))
         return 0
-    except StrategyCError as exc:
+    except StrategyMError as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
         return 2
 

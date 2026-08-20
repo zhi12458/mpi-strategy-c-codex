@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared validation and receipt primitives for MPI Strategy C."""
+"""Shared validation and receipt primitives for MPI Strategy M."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
-class StrategyCError(RuntimeError):
+class StrategyMError(RuntimeError):
     pass
 
 
@@ -34,17 +34,17 @@ SECRET_FLAGS = {"--api-key", "--apikey", "--token", "--secret", "--authorization
 
 
 def managed_root() -> Path:
-    override = os.environ.get("MPI_STRATEGY_C_ROOT")
+    override = os.environ.get("MPI_STRATEGY_M_ROOT")
     if override:
         return Path(override).expanduser().resolve()
     if platform.system() == "Darwin":
-        return (Path.home() / "Library" / "Application Support" / "MPI-Strategy-C").resolve()
+        return (Path.home() / "Library" / "Application Support" / "MPI-Strategy-M").resolve()
     if platform.system() == "Windows":
         base = os.environ.get("LOCALAPPDATA")
         if not base:
-            raise StrategyCError("LOCALAPPDATA is not defined")
-        return (Path(base) / "MPI-Strategy-C").resolve()
-    raise StrategyCError("only Apple Silicon macOS and Windows 11 x64 are supported")
+            raise StrategyMError("LOCALAPPDATA is not defined")
+        return (Path(base) / "MPI-Strategy-M").resolve()
+    raise StrategyMError("only Apple Silicon macOS and Windows 11 x64 are supported")
 
 
 def platform_label() -> str:
@@ -61,9 +61,9 @@ def load_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise StrategyCError(f"invalid JSON file: {path}") from exc
+        raise StrategyMError(f"invalid JSON file: {path}") from exc
     if not isinstance(value, dict):
-        raise StrategyCError(f"JSON root must be an object: {path}")
+        raise StrategyMError(f"JSON root must be an object: {path}")
     return value
 
 
@@ -86,7 +86,7 @@ def sha256_bytes(value: bytes) -> str:
 def file_record(path: Path) -> dict:
     resolved = path.expanduser().resolve()
     if not resolved.is_file():
-        raise StrategyCError(f"required file is missing: {resolved}")
+        raise StrategyMError(f"required file is missing: {resolved}")
     return {
         "absolute_path": str(resolved),
         "sha256": sha256_file(resolved),
@@ -144,38 +144,38 @@ def run(command: Sequence[str], cwd: Path, env: dict[str, str] | None = None) ->
             check=False,
         )
     except OSError as exc:
-        raise StrategyCError(f"could not execute: {command[0]}") from exc
+        raise StrategyMError(f"could not execute: {command[0]}") from exc
 
 
 def git(path: Path, *arguments: str) -> str:
     completed = run(("git", *arguments), path)
     if completed.returncode:
-        raise StrategyCError(f"git {' '.join(arguments[:2])} failed in {path}")
+        raise StrategyMError(f"git {' '.join(arguments[:2])} failed in {path}")
     return completed.stdout.decode("utf-8", errors="replace").strip()
 
 
 def verify_repo(path: Path, spec: dict, critical_hashes: dict[str, str] | None = None) -> dict:
     path = path.expanduser().resolve()
     if not path.is_absolute() or not (path / ".git").exists():
-        raise StrategyCError(f"repository is missing or not a Git checkout: {path}")
+        raise StrategyMError(f"repository is missing or not a Git checkout: {path}")
     origin = git(path, "remote", "get-url", "origin")
     head = git(path, "rev-parse", "HEAD")
     if origin != spec["origin"]:
-        raise StrategyCError(f"origin mismatch for {path}: {origin}")
+        raise StrategyMError(f"origin mismatch for {path}: {origin}")
     if head != spec["expected_sha"]:
-        raise StrategyCError(f"SHA mismatch for {path}: {head}")
+        raise StrategyMError(f"SHA mismatch for {path}: {head}")
     status = git(path, "status", "--porcelain=v1", "--untracked-files=all")
     if status:
-        raise StrategyCError(f"locked repository is not clean: {path}")
+        raise StrategyMError(f"locked repository is not clean: {path}")
     files: dict[str, str] = {}
     for relative in spec["required_files"]:
         candidate = path / relative
         if not candidate.is_file():
-            raise StrategyCError(f"required locked file is missing: {candidate}")
+            raise StrategyMError(f"required locked file is missing: {candidate}")
         digest = sha256_file(candidate)
         files[relative] = digest
         if critical_hashes is not None and critical_hashes.get(relative) != digest:
-            raise StrategyCError(f"critical file hash mismatch: {candidate}")
+            raise StrategyMError(f"critical file hash mismatch: {candidate}")
     result = {
         "absolute_path": str(path),
         "origin": origin,
@@ -195,9 +195,9 @@ def run_doctor(repo: Path, script: Path) -> tuple[int, bytes, bytes]:
     try:
         report = json.loads(completed.stdout.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise StrategyCError(f"doctor did not return valid JSON: {script}") from exc
+        raise StrategyMError(f"doctor did not return valid JSON: {script}") from exc
     if completed.returncode or not report.get("ok"):
-        raise StrategyCError(f"doctor failed: {script}")
+        raise StrategyMError(f"doctor failed: {script}")
     return completed.returncode, completed.stdout, completed.stderr
 
 
@@ -205,7 +205,7 @@ def load_ready(root: Path | None = None, require_ready: bool = True) -> dict:
     root = (root or managed_root()).resolve()
     ready = load_json(root / READY_NAME)
     if require_ready and ready.get("ready") is not True:
-        raise StrategyCError("installation is not production-ready")
+        raise StrategyMError("installation is not production-ready")
     return ready
 
 
@@ -213,22 +213,27 @@ def verify_ready(root: Path | None = None, require_ready: bool = True) -> tuple[
     root = (root or managed_root()).resolve()
     lock = load_lock()
     if require_ready and lock.get("release_ready") is not True:
-        raise StrategyCError("public release lock is not ready")
+        raise StrategyMError("public release lock is not ready")
     ready = load_ready(root, require_ready=require_ready)
     if ready.get("schema_version") != 1 or ready.get("skill_version") != lock["skill_version"]:
-        raise StrategyCError("READY schema or skill version mismatch")
+        raise StrategyMError("READY schema or skill version mismatch")
+    for field in ("strategy_id", "workflow_version", "terminology_policy_version"):
+        if ready.get(field) != lock.get(field):
+            raise StrategyMError(f"READY {field} does not match the release lock")
+    if ready.get("models") != lock.get("models"):
+        raise StrategyMError("READY model roles do not match the release lock")
     mpi_ready = ready.get("mpi_translations", {})
     toolkit_ready = ready.get("translation_toolkit", {})
     mpi = verify_repo(Path(mpi_ready.get("absolute_path", "")), lock["mpi_translations"], mpi_ready.get("critical_file_sha256"))
     toolkit = verify_repo(Path(toolkit_ready.get("absolute_path", "")), lock["translation_toolkit"], toolkit_ready.get("critical_file_sha256"))
     if Path(toolkit["absolute_path"]).parent != Path(mpi["absolute_path"]):
-        raise StrategyCError("toolkit is not the real MPI submodule checkout")
+        raise StrategyMError("toolkit is not the real MPI submodule checkout")
     submodule = run(("git", "submodule", "status", "--", lock["translation_toolkit"]["submodule_path"]), Path(mpi["absolute_path"]))
     status = submodule.stdout.decode("utf-8", errors="replace").rstrip("\r\n")
     marker = status[:1]
     actual = status[1:41] if marker in {" ", "-", "+", "U"} else status.split()[0] if status else ""
     if submodule.returncode or marker in {"-", "+", "U"} or actual != toolkit["git_sha"]:
-        raise StrategyCError("toolkit is not an initialized, exact MPI Git submodule")
+        raise StrategyMError("toolkit is not an initialized, exact MPI Git submodule")
     mpi_code, mpi_out, _ = run_doctor(Path(mpi["absolute_path"]), Path(mpi["absolute_path"]) / "scripts" / "doctor.py")
     toolkit_code, toolkit_out, _ = run_doctor(Path(toolkit["absolute_path"]), Path(toolkit["absolute_path"]) / "scripts" / "doctor.py")
     mpi["doctor_exit_code"] = mpi_code
@@ -247,7 +252,7 @@ def begin_project(project: Path, input_type: str, root: Path | None = None, requ
     project = project.expanduser().resolve()
     project.mkdir(parents=True, exist_ok=True)
     if (project / "target.dj").exists():
-        raise StrategyCError("target.dj exists before instruction receipt; use a new project or validated resume")
+        raise StrategyMError("target.dj exists before instruction receipt; use a new project or validated resume")
     mpi = Path(mpi_info["absolute_path"])
     toolkit = Path(toolkit_info["absolute_path"])
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -259,6 +264,9 @@ def begin_project(project: Path, input_type: str, root: Path | None = None, requ
     receipt = {
         "schema_version": 1,
         "receipt_id": str(uuid.uuid4()),
+        "strategy_id": ready["strategy_id"],
+        "workflow_version": ready["workflow_version"],
+        "terminology_policy_version": ready["terminology_policy_version"],
         "input_type": input_type,
         "created_at": timestamp,
         "ready_sha256": sha256_file((root or managed_root()).resolve() / READY_NAME),
@@ -276,9 +284,9 @@ def validate_instruction_receipt(project: Path) -> dict:
     for item in receipt.get("instructions", []):
         path = Path(item["absolute_path"])
         if not path.is_file() or sha256_file(path) != item["sha256"] or path.stat().st_size != item["bytes"]:
-            raise StrategyCError(f"instruction changed after receipt: {path}")
+            raise StrategyMError(f"instruction changed after receipt: {path}")
     if len(receipt.get("instructions", [])) != 5:
-        raise StrategyCError("instruction receipt is incomplete")
+        raise StrategyMError("instruction receipt is incomplete")
     return receipt
 
 
@@ -311,7 +319,7 @@ def read_receipts(project: Path) -> list[dict]:
         try:
             item = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise StrategyCError(f"invalid receipt JSON at line {number}") from exc
+            raise StrategyMError(f"invalid receipt JSON at line {number}") from exc
         receipts.append(item)
     return receipts
 
@@ -320,4 +328,4 @@ def reject_secret_arguments(arguments: Sequence[str]) -> None:
     for argument in arguments:
         name = argument.split("=", 1)[0].casefold()
         if name in SECRET_FLAGS or name.endswith("api_key") or name.endswith("api-key"):
-            raise StrategyCError("credentials are forbidden in command arguments")
+            raise StrategyMError("credentials are forbidden in command arguments")

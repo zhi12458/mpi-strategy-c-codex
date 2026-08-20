@@ -4,7 +4,7 @@ Use the document workflow after transcription, with these additions:
 
 1. Verify `READY.json` binds the selected model filename and SHA-256. Extract
    audio with FFmpeg when the input is video.
-2. Invoke `transcribe_media.py` through `strategy_c.py run-media` so the
+2. Invoke `transcribe_media.py` through `strategy_m.py run-media` so the
    whisper.cpp executable, selected model hash, media input hash, output hash,
    timing, and exit code are receipted. The wrapper may call FFmpeg and
    whisper.cpp only; it contains no speech recognizer.

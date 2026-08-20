@@ -10,17 +10,17 @@ import time
 import uuid
 from pathlib import Path
 
-from runtime import StrategyCError, atomic_json, atomic_text, run, sha256_bytes, sha256_file
+from runtime import StrategyMError, atomic_json, atomic_text, run, sha256_bytes, sha256_file
 
 
 def deepseek_key() -> str:
     try:
         import keyring
     except ImportError as exc:
-        raise StrategyCError("Python keyring is required for live smoke testing") from exc
-    value = keyring.get_password("mpi-strategy-c-deepseek", "default")
+        raise StrategyMError("Python keyring is required for live smoke testing") from exc
+    value = keyring.get_password("mpi-strategy-m-deepseek", "default")
     if not value:
-        raise StrategyCError("DeepSeek credential is missing for live smoke testing")
+        raise StrategyMError("DeepSeek credential is missing for live smoke testing")
     return value
 
 
@@ -47,7 +47,7 @@ def execute(records: list[dict], toolkit: Path, project: Path, script: str, argu
     }
     records.append(record)
     if completed.returncode:
-        raise StrategyCError(f"public fixture smoke stage failed: {script}")
+        raise StrategyMError(f"public fixture smoke stage failed: {script}")
 
 
 def copy_files(source: Path, destination: Path, names: tuple[str, ...]) -> None:
@@ -59,9 +59,9 @@ def copy_files(source: Path, destination: Path, names: tuple[str, ...]) -> None:
 def run_smoke_test(root: Path, toolkit: Path) -> dict:
     fixture = toolkit / "examples" / "minimal-article"
     if not fixture.is_dir():
-        raise StrategyCError("toolkit public smoke fixture is missing")
+        raise StrategyMError("toolkit public smoke fixture is missing")
     records: list[dict] = []
-    with tempfile.TemporaryDirectory(prefix="mpi-strategy-c-smoke-") as directory:
+    with tempfile.TemporaryDirectory(prefix="mpi-strategy-m-smoke-") as directory:
         base = Path(directory)
 
         mechanical = base / "mechanical"

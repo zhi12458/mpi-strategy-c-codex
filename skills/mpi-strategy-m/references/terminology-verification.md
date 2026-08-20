@@ -45,7 +45,7 @@ priority list and does not require web evidence. Every other frozen decision
 requires admissible external evidence. Unresolved or conflicting items use
 `status: human_review` and may not enter the frozen term map.
 
-Run `strategy_c.py record-term-decisions` after creating or updating the file.
+Run `strategy_m.py record-term-decisions` after creating or updating the file.
 When the source changes, recalculate the file-level hash and every affected
 line hash. Unchanged context hashes permit individual decisions to be reused;
 stale contexts must be researched again. Add each frozen decision to the

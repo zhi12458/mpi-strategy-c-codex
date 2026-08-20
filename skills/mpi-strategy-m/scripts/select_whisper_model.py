@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from runtime import LOCK_PATH, StrategyCError, atomic_json, load_json, sha256_file
+from runtime import LOCK_PATH, StrategyMError, atomic_json, load_json, sha256_file
 
 
 def select_file() -> Path:
@@ -22,7 +22,7 @@ def select_file() -> Path:
     )
     root.destroy()
     if not value:
-        raise StrategyCError("Whisper model selection was cancelled")
+        raise StrategyMError("Whisper model selection was cancelled")
     return Path(value).expanduser().resolve()
 
 
@@ -34,10 +34,10 @@ def main() -> int:
     lock = load_json(LOCK_PATH)["whisper"]
     path = args.path.expanduser().resolve() if args.path else select_file()
     if path.name != lock["model_filename"]:
-        raise StrategyCError(f"wrong model filename: {path.name}")
+        raise StrategyMError(f"wrong model filename: {path.name}")
     digest = sha256_file(path)
     if digest != lock["model_sha256"]:
-        raise StrategyCError("Whisper model SHA-256 does not match the release lock")
+        raise StrategyMError("Whisper model SHA-256 does not match the release lock")
     record = {"absolute_path": str(path), "filename": path.name, "sha256": digest, "bytes": path.stat().st_size}
     atomic_json(args.output, record)
     print(json.dumps(record, ensure_ascii=False))

@@ -10,7 +10,7 @@ ROOT = Path(__file__).parents[1]
 def test_public_release_uses_exact_verified_compatibility_forks():
     lock = json.loads((ROOT / "dependency-lock.json").read_text(encoding="utf-8"))
     installed_skill_lock = json.loads(
-        (ROOT / "skills" / "mpi-strategy-c" / "dependency-lock.json").read_text(encoding="utf-8")
+        (ROOT / "skills" / "mpi-strategy-m" / "dependency-lock.json").read_text(encoding="utf-8")
     )
 
     assert installed_skill_lock == lock
@@ -36,8 +36,28 @@ def test_public_release_uses_exact_verified_compatibility_forks():
 
     assert lock["compatibility_policy"]["automatic_main_updates"] is False
     assert lock["compatibility_policy"]["exact_sha_required"] is True
-    assert lock["skill_version"] == "0.2.0"
+    assert lock["strategy_id"] == "M"
+    assert lock["workflow_version"] == "1.0.0"
+    assert lock["skill_version"] == "1.0.0"
+    assert lock["terminology_policy_version"] == "1.0.0"
     assert lock["models"]["translation"]["reasoning_effort"] == "medium"
     assert lock["models"]["translation_fallback"]["reasoning_effort"] == "high"
-    assert lock["model_policy"]["translation_default"] == "provisional"
-    assert lock["model_policy"]["additional_cross_genre_tests"] == 2
+    assert lock["model_policy"]["translation_default"] == "fixed"
+    assert lock["model_policy"]["independent_concision_pass_required"] is True
+    assert lock["model_policy"]["universal_model_superiority_claimed"] is False
+    assert lock["fixed_terms"]["济群法师"] == "Master Jiqun"
+    assert lock["fixed_terms"]["大道大商"] == "Great Path, Great Business"
+    assert lock["validation_baseline"]["final_target_sha256"] == "5ca852fbbaba9ac799e01d965e38f1ed65a3dc1e0e15ccebb9629e85ac63c889"
+    assert lock["validation_baseline"]["targeted_final_gate"]["status"] == "clear"
+
+
+def test_skill_routing_is_explicitly_m_named_not_generic_translation():
+    skill = (ROOT / "skills" / "mpi-strategy-m" / "SKILL.md").read_text(encoding="utf-8")
+    for phrase in ("M方案", "M策略", "按M翻译", "用M方案翻译", "安装M策略", "$mpi-strategy-m"):
+        assert phrase in skill
+    assert "Use only when the user explicitly says" in skill
+    assert "do not claim ordinary translation requests" in skill
+
+    metadata = (ROOT / "skills" / "mpi-strategy-m" / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    assert 'default_prompt: "Use $mpi-strategy-m' in metadata
+    assert "allow_implicit_invocation: true" in metadata

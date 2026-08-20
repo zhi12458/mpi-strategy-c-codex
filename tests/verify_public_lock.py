@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-SKILL = ROOT / "skills" / "mpi-strategy-c"
+SKILL = ROOT / "skills" / "mpi-strategy-m"
 LOCK_PATH = SKILL / "dependency-lock.json"
 LOCK = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
 sys.path.insert(0, str(SKILL / "scripts"))

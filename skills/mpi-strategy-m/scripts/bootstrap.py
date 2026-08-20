@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time locked installation for MPI Strategy C."""
+"""One-time locked installation for MPI Strategy M."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from runtime import (
     READY_NAME,
-    StrategyCError,
+    StrategyMError,
     atomic_json,
     load_lock,
     managed_root,
@@ -36,27 +36,27 @@ def install_system_dependencies() -> None:
     if system == "Darwin":
         brew = executable("brew")
         if not brew:
-            raise StrategyCError("Homebrew is required for automatic macOS dependency installation")
+            raise StrategyMError("Homebrew is required for automatic macOS dependency installation")
         completed = run((brew, "install", "git", "cmake", "pandoc", "ffmpeg"), Path.cwd())
         if completed.returncode:
-            raise StrategyCError("Homebrew dependency installation failed")
+            raise StrategyMError("Homebrew dependency installation failed")
     elif system == "Windows":
         winget = executable("winget")
         if not winget:
-            raise StrategyCError("winget is required for automatic Windows dependency installation")
+            raise StrategyMError("winget is required for automatic Windows dependency installation")
         packages = ("Git.Git", "Kitware.CMake", "JohnMacFarlane.Pandoc", "Gyan.FFmpeg")
         for package in packages:
             completed = run((winget, "install", "--id", package, "--exact", "--accept-package-agreements", "--accept-source-agreements"), Path.cwd())
             if completed.returncode:
-                raise StrategyCError(f"winget failed to install {package}")
+                raise StrategyMError(f"winget failed to install {package}")
         links = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Links"
         if links.is_dir():
             os.environ["PATH"] = str(links) + os.pathsep + os.environ.get("PATH", "")
     else:
-        raise StrategyCError("unsupported platform")
+        raise StrategyMError("unsupported platform")
     completed = run((sys.executable, "-m", "pip", "install", "keyring>=25,<27"), Path.cwd())
     if completed.returncode:
-        raise StrategyCError("could not install Python keyring")
+        raise StrategyMError("could not install Python keyring")
 
 
 def require_dependencies(install_missing: bool) -> None:
@@ -74,13 +74,13 @@ def require_dependencies(install_missing: bool) -> None:
         except ImportError:
             missing.append("python-keyring")
     if missing:
-        raise StrategyCError("missing dependencies: " + ", ".join(sorted(set(missing))))
+        raise StrategyMError("missing dependencies: " + ", ".join(sorted(set(missing))))
 
 
 def git_checked(command: tuple[str, ...], cwd: Path) -> None:
     completed = run(command, cwd)
     if completed.returncode:
-        raise StrategyCError(f"Git command failed: {' '.join(command[:3])}")
+        raise StrategyMError(f"Git command failed: {' '.join(command[:3])}")
 
 
 def clone_locked(
@@ -130,7 +130,7 @@ def prepare_repositories(root: Path, lock: dict, candidate_mpi: Path | None, can
     )
     pointer = run(("git", "ls-tree", "HEAD", toolkit_spec["submodule_path"]), mpi)
     if pointer.returncode or toolkit_spec["expected_sha"] not in pointer.stdout.decode("utf-8", errors="replace"):
-        raise StrategyCError("MPI commit does not point to the locked toolkit SHA")
+        raise StrategyMError("MPI commit does not point to the locked toolkit SHA")
     toolkit = mpi / toolkit_spec["submodule_path"]
     if candidate_toolkit:
         clone_locked(str(candidate_toolkit), toolkit, toolkit_spec["expected_sha"], toolkit_spec["origin"])
@@ -169,15 +169,15 @@ def build_whisper(root: Path, lock: dict) -> Path:
     build = source / "build"
     completed = run(("cmake", "-S", str(source), "-B", str(build), "-DWHISPER_BUILD_TESTS=OFF", "-DWHISPER_BUILD_EXAMPLES=ON"), source)
     if completed.returncode:
-        raise StrategyCError("whisper.cpp configuration failed")
+        raise StrategyMError("whisper.cpp configuration failed")
     completed = run(("cmake", "--build", str(build), "--config", "Release", "--parallel", "2"), source)
     if completed.returncode:
-        raise StrategyCError("whisper.cpp build failed")
+        raise StrategyMError("whisper.cpp build failed")
     candidates = (build / "bin" / "whisper-cli", build / "bin" / "Release" / "whisper-cli.exe")
     for candidate in candidates:
         if candidate.is_file():
             return candidate.resolve()
-    raise StrategyCError("whisper-cli was not produced")
+    raise StrategyMError("whisper-cli was not produced")
 
 
 def install(
@@ -190,19 +190,19 @@ def install(
 ) -> dict:
     lock = load_lock()
     if not lock.get("release_ready") and not development_candidate:
-        raise StrategyCError("public installation blocked: the verified release lock is not ready")
+        raise StrategyMError("public installation blocked: the verified release lock is not ready")
     root = managed_root()
     root.mkdir(parents=True, exist_ok=True)
     require_dependencies(install_missing)
     if model_path.name != lock["whisper"]["model_filename"] or sha256_file(model_path) != lock["whisper"]["model_sha256"]:
-        raise StrategyCError("selected Whisper model does not match the locked filename and SHA-256")
+        raise StrategyMError("selected Whisper model does not match the locked filename and SHA-256")
     if not skip_credential_for_smoke:
         try:
             import keyring
         except ImportError as exc:
-            raise StrategyCError("Python keyring is missing") from exc
-        if not keyring.get_password("mpi-strategy-c-deepseek", "default"):
-            raise StrategyCError("DeepSeek credential is not present in the operating-system vault")
+            raise StrategyMError("Python keyring is missing") from exc
+        if not keyring.get_password("mpi-strategy-m-deepseek", "default"):
+            raise StrategyMError("DeepSeek credential is not present in the operating-system vault")
     mpi, toolkit = prepare_repositories(root, lock, candidate_mpi, candidate_toolkit)
     whisper_cli = build_whisper(root, lock)
     mpi_code, mpi_report, _ = run_doctor(mpi, mpi / "scripts" / "doctor.py")
@@ -221,7 +221,13 @@ def install(
         "ready": False,
         "candidate_installation": development_candidate,
         "platform": platform_label(),
+        "strategy_id": lock["strategy_id"],
+        "workflow_version": lock["workflow_version"],
         "skill_version": lock["skill_version"],
+        "terminology_policy_version": lock["terminology_policy_version"],
+        "models": lock["models"],
+        "model_policy": lock["model_policy"],
+        "validation_baseline": lock["validation_baseline"],
         "mpi_translations": mpi_info,
         "translation_toolkit": toolkit_info,
         "whisper": {

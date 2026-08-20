@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 
 
-SCRIPTS = Path(__file__).parents[1] / "skills" / "mpi-strategy-c" / "scripts"
+SCRIPTS = Path(__file__).parents[1] / "skills" / "mpi-strategy-m" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import bootstrap  # noqa: E402
 import fault_injection  # noqa: E402
 import runtime  # noqa: E402
-import strategy_c  # noqa: E402
+import strategy_m  # noqa: E402
 
 
 GIT_ENV = {
@@ -41,6 +41,7 @@ def write(path: Path, text: str) -> None:
 def write_clear_term_decisions(project: Path) -> None:
     source = project / "source.dj"
     write(source, "原文\n")
+    write(project / "target.dj", "English\n")
     runtime.atomic_json(project / "term-decisions.json", {
         "schema_version": 1,
         "source_sha256": runtime.sha256_file(source),
@@ -156,7 +157,10 @@ output.write_text(source.read_text(encoding='utf-8'), encoding='utf-8')
 
     lock = {
         "schema_version": 1,
+        "strategy_id": "M",
+        "workflow_version": "1.0.0",
         "skill_version": "test",
+        "terminology_policy_version": "test",
         "release_ready": True,
         "mpi_translations": {
             "origin": mpi_origin,
@@ -182,20 +186,30 @@ output.write_text(source.read_text(encoding='utf-8'), encoding='utf-8')
             "translation_fallback": {"provider": "openai-codex", "model": "gpt-5.6-sol", "reasoning_effort": "high"},
             "review": {"provider": "deepseek", "model": "deepseek-v4-pro", "reasoning_effort": "max"},
         },
+        "model_policy": {"translation_default": "fixed"},
+        "fixed_terms": {
+            "济群法师": "Master Jiqun",
+            "大道大商": "Great Path, Great Business",
+        },
+        "validation_baseline": {"name": "test"},
     }
     lock_path = tmp_path / "dependency-lock.json"
     write(lock_path, json.dumps(lock))
     monkeypatch.setattr(runtime, "LOCK_PATH", lock_path)
     monkeypatch.setattr(bootstrap, "load_lock", lambda: runtime.load_json(lock_path))
-    monkeypatch.setattr(strategy_c, "load_lock", lambda: runtime.load_json(lock_path))
-    monkeypatch.setenv("MPI_STRATEGY_C_ROOT", str(root))
+    monkeypatch.setattr(strategy_m, "load_lock", lambda: runtime.load_json(lock_path))
+    monkeypatch.setenv("MPI_STRATEGY_M_ROOT", str(root))
 
     mpi_info = runtime.verify_repo(mpi, lock["mpi_translations"])
     toolkit_info = runtime.verify_repo(toolkit, lock["translation_toolkit"])
     ready = {
         "schema_version": 1,
         "ready": True,
+        "strategy_id": "M",
+        "workflow_version": "1.0.0",
         "skill_version": "test",
+        "terminology_policy_version": "test",
+        "models": lock["models"],
         "mpi_translations": mpi_info,
         "translation_toolkit": toolkit_info,
     }
@@ -206,6 +220,8 @@ output.write_text(source.read_text(encoding='utf-8'), encoding='utf-8')
 def test_valid_installation_generates_complete_instruction_receipt(installation, tmp_path):
     ready, mpi, toolkit = runtime.verify_ready()
     assert ready["ready"] is True
+    assert ready["strategy_id"] == "M"
+    assert ready["workflow_version"] == "1.0.0"
     assert mpi["doctor_exit_code"] == toolkit["doctor_exit_code"] == 0
     assert mpi["compatibility_fork"] is True
     assert mpi["upstream_origin"] == "https://example.invalid/mpi-upstream"
@@ -214,6 +230,7 @@ def test_valid_installation_generates_complete_instruction_receipt(installation,
     receipt = runtime.begin_project(tmp_path / "project", "document")
 
     assert len(receipt["instructions"]) == 5
+    assert receipt["strategy_id"] == "M"
     assert Path(receipt["instructions"][0]["absolute_path"]).name == "AGENTS.md"
 
 
@@ -221,7 +238,7 @@ def test_missing_mpi_agents_blocks_until_restored(installation):
     path = installation["mpi"] / "AGENTS.md"
     original = path.read_bytes()
     path.unlink()
-    with pytest.raises(runtime.StrategyCError):
+    with pytest.raises(runtime.StrategyMError):
         runtime.verify_ready()
     path.write_bytes(original)
     assert runtime.verify_ready()[0]["ready"] is True
@@ -230,7 +247,7 @@ def test_missing_mpi_agents_blocks_until_restored(installation):
 def test_wrong_origin_blocks_until_restored(installation):
     mpi = installation["mpi"]
     command(mpi, "git", "remote", "set-url", "origin", "https://example.invalid/wrong")
-    with pytest.raises(runtime.StrategyCError, match="origin mismatch"):
+    with pytest.raises(runtime.StrategyMError, match="origin mismatch"):
         runtime.verify_ready()
     command(mpi, "git", "remote", "set-url", "origin", installation["lock"]["mpi_translations"]["origin"])
     assert runtime.verify_ready()[0]["ready"] is True
@@ -240,7 +257,7 @@ def test_wrong_mpi_sha_blocks_until_exact_commit_is_restored(installation):
     mpi = installation["mpi"]
     write(mpi / "unexpected.txt", "new commit\n")
     commit(mpi, "unexpected")
-    with pytest.raises(runtime.StrategyCError, match="SHA mismatch"):
+    with pytest.raises(runtime.StrategyMError, match="SHA mismatch"):
         runtime.verify_ready()
     command(mpi, "git", "checkout", "--detach", installation["lock"]["mpi_translations"]["expected_sha"])
     (mpi / "unexpected.txt").unlink(missing_ok=True)
@@ -255,7 +272,7 @@ def test_modified_critical_toolkit_file_blocks_until_restored(installation, rela
     toolkit = installation["toolkit"]
     script = toolkit / relative
     script.write_text(script.read_text(encoding="utf-8") + "# damaged\n", encoding="utf-8")
-    with pytest.raises(runtime.StrategyCError):
+    with pytest.raises(runtime.StrategyMError):
         runtime.verify_ready()
     command(toolkit, "git", "checkout", "--", relative)
     assert runtime.verify_ready()[0]["ready"] is True
@@ -265,11 +282,11 @@ def test_missing_toolkit_and_failing_doctor_both_block(installation, monkeypatch
     toolkit = installation["toolkit"]
     moved = toolkit.with_name("toolkit.missing")
     toolkit.rename(moved)
-    with pytest.raises(runtime.StrategyCError):
+    with pytest.raises(runtime.StrategyMError):
         runtime.verify_ready()
     moved.rename(toolkit)
     monkeypatch.setenv("FAIL_FAKE_DOCTOR", "1")
-    with pytest.raises(runtime.StrategyCError, match="doctor failed"):
+    with pytest.raises(runtime.StrategyMError, match="doctor failed"):
         runtime.verify_ready()
     monkeypatch.delenv("FAIL_FAKE_DOCTOR")
     assert runtime.verify_ready()[0]["ready"] is True
@@ -279,9 +296,9 @@ def test_unreleased_lock_blocks_even_forged_ready(installation):
     lock = runtime.load_json(installation["lock_path"])
     lock["release_ready"] = False
     write(installation["lock_path"], json.dumps(lock))
-    with pytest.raises(runtime.StrategyCError, match="release lock"):
+    with pytest.raises(runtime.StrategyMError, match="release lock"):
         runtime.verify_ready()
-    with pytest.raises(runtime.StrategyCError, match="release lock"):
+    with pytest.raises(runtime.StrategyMError, match="release lock"):
         bootstrap.install(Path("missing.bin"), install_missing=False)
 
 
@@ -292,7 +309,7 @@ def test_tool_call_is_receipted_with_repository_and_hashes(installation, tmp_pat
     output = project / "source.dj"
     write(source, "原文\n")
 
-    receipt = strategy_c.run_audited_tool(
+    receipt = strategy_m.run_audited_tool(
         project, "source_extraction", "source2dj.py",
         [str(source), str(output)], [source], [output],
     )
@@ -317,13 +334,13 @@ def test_stale_artifact_prevents_manifest_completion(installation, tmp_path):
     write(project / "subtitle-qa-report.json", json.dumps(subtitle_qa))
     write(project / "semantic-review.json", json.dumps({"status": "clear", "blocking_findings": 0}))
     output = runtime.file_record(artifact)
-    for stage in sorted(strategy_c.DOCUMENT_STAGES | strategy_c.MODEL_STAGES):
+    for stage in sorted(strategy_m.DOCUMENT_STAGES | strategy_m.MODEL_STAGES):
         runtime.append_receipt(project, {"receipt_id": stage, "workflow_stage": stage, "exit_code": 0, "outputs": [output]})
 
-    assert strategy_c.finalize(project, "document")["pipeline_complete"] is True
+    assert strategy_m.finalize(project, "document")["pipeline_complete"] is True
     write(artifact, "stale replacement\n")
-    with pytest.raises(runtime.StrategyCError):
-        strategy_c.finalize(project, "document")
+    with pytest.raises(runtime.StrategyMError):
+        strategy_m.finalize(project, "document")
     assert runtime.load_json(project / "MANIFEST.json")["pipeline_complete"] is False
 
 
@@ -343,19 +360,19 @@ def test_forged_old_qa_report_fails_freshness_chain(installation, tmp_path):
     write(bilingual_docx_qa, json.dumps({"status": "PASS"}))
     write(project / "semantic-review.json", json.dumps({"status": "clear", "blocking_findings": 0}))
     outputs = [runtime.file_record(path) for path in (bilingual, qa_path, subtitle_path, target_docx_qa, bilingual_docx_qa)]
-    for stage in sorted(strategy_c.DOCUMENT_STAGES | strategy_c.MODEL_STAGES):
+    for stage in sorted(strategy_m.DOCUMENT_STAGES | strategy_m.MODEL_STAGES):
         runtime.append_receipt(project, {"receipt_id": stage, "workflow_stage": stage, "exit_code": 0, "outputs": outputs})
-    assert strategy_c.finalize(project, "document")["pipeline_complete"] is True
+    assert strategy_m.finalize(project, "document")["pipeline_complete"] is True
 
     write(qa_path, json.dumps({"status": "PASS", "run": "forged-old"}))
-    with pytest.raises(runtime.StrategyCError):
-        strategy_c.finalize(project, "document")
+    with pytest.raises(runtime.StrategyMError):
+        strategy_m.finalize(project, "document")
     manifest = runtime.load_json(project / "MANIFEST.json")
     assert str(qa_path) in manifest["stale_or_missing_artifacts"]
 
 
 def test_secret_arguments_are_rejected():
-    with pytest.raises(runtime.StrategyCError):
+    with pytest.raises(runtime.StrategyMError):
         runtime.reject_secret_arguments(["--api-key=sk-test"])
 
 
@@ -372,14 +389,20 @@ def test_sol_medium_is_default_and_high_is_only_targeted_fallback(installation, 
         "status": "resolved",
         "unresolved_findings": 0,
     }))
+    runtime.append_receipt(project, {
+        "receipt_id": "flash-analysis-reuse",
+        "workflow_stage": "flash_analysis_reuse",
+        "exit_code": 0,
+        "outputs": [],
+    })
 
-    receipt = strategy_c.record_model(
+    receipt = strategy_m.record_model(
         project, "sol_translation", "openai-codex", "gpt-5.6-sol", "medium",
         "0" * 64, [source], [medium_output], None,
     )
     assert receipt["reasoning_effort"] == "medium"
-    with pytest.raises(runtime.StrategyCError, match="release lock"):
-        strategy_c.record_model(
+    with pytest.raises(runtime.StrategyMError, match="release lock"):
+        strategy_m.record_model(
             project, "sol_translation", "openai-codex", "gpt-5.6-sol", "high",
             "1" * 64, [source], [medium_output], None,
         )
@@ -391,11 +414,56 @@ def test_sol_medium_is_default_and_high_is_only_targeted_fallback(installation, 
         "exit_code": 0,
         "outputs": [runtime.file_record(semantic_review)],
     })
-    fallback = strategy_c.record_model(
+    fallback = strategy_m.record_model(
         project, "sol_fallback", "openai-codex", "gpt-5.6-sol", "high",
         "2" * 64, [source, semantic_review], [fallback_output], None,
     )
     assert fallback["workflow_stage"] == "sol_fallback"
+
+
+def test_concision_is_separate_ordered_medium_stage(installation, tmp_path):
+    project = tmp_path / "project"
+    runtime.begin_project(project, "document")
+    source = project / "source.dj"
+    revised = project / "sol-revised.dj"
+    concise = project / "sol-concise.dj"
+    write(source, "原文\n")
+    write(revised, "Accurate English\n")
+    write(concise, "Concise English\n")
+
+    with pytest.raises(runtime.StrategyMError, match="out of order"):
+        strategy_m.record_model(
+            project, "sol_concision", "openai-codex", "gpt-5.6-sol", "medium",
+            "4" * 64, [source, revised], [concise], None,
+        )
+    runtime.append_receipt(project, {
+        "receipt_id": "accuracy",
+        "workflow_stage": "sol_accuracy_revision",
+        "exit_code": 0,
+        "outputs": [runtime.file_record(revised)],
+    })
+    receipt = strategy_m.record_model(
+        project, "sol_concision", "openai-codex", "gpt-5.6-sol", "medium",
+        "5" * 64, [source, revised], [concise], None,
+    )
+    assert receipt["workflow_stage"] == "sol_concision"
+
+
+def test_fixed_terms_ignore_djot_anchors_and_require_exact_renderings(installation, tmp_path):
+    source = tmp_path / "source.dj"
+    target = tmp_path / "target.dj"
+    term_map = tmp_path / "term-map.yaml"
+    write(source, "{#大道大商}\n大道大商\n济群法师\n")
+    write(target, "{#大道大商}\nGreat Path, Great Business\nMaster Jiqun\n")
+    write(term_map, json.dumps({"terms": [
+        {"source": "大道大商", "preferred": "Great Path, Great Business"},
+        {"source": "济群法师", "preferred": "Master Jiqun"},
+    ]}, ensure_ascii=False))
+
+    summary = strategy_m.validate_strategy_fixed_terms(source, term_map, target)
+    path_term = next(item for item in summary["checked"] if item["source"] == "大道大商")
+    assert path_term["source_count_excluding_structural_anchors"] == 1
+    assert path_term["target_count"] == 1
 
 
 def test_sol_high_fallback_is_rejected_before_blocking_second_review(installation, tmp_path):
@@ -405,8 +473,8 @@ def test_sol_high_fallback_is_rejected_before_blocking_second_review(installatio
     output = project / "sol-fallback-adjudication.json"
     write(source, "原文\n")
     write(output, json.dumps({"scope": "targeted_title_or_critical_major", "status": "resolved", "unresolved_findings": 0}))
-    with pytest.raises(runtime.StrategyCError, match="completed second Pro review"):
-        strategy_c.record_model(
+    with pytest.raises(runtime.StrategyMError, match="completed second Pro review"):
+        strategy_m.record_model(
             project, "sol_fallback", "openai-codex", "gpt-5.6-sol", "high",
             "3" * 64, [source], [output], None,
         )
@@ -420,20 +488,20 @@ def test_fallback_resolution_is_bound_to_receipted_artifact(installation, tmp_pa
         "status": "resolved",
         "unresolved_findings": 0,
     }))
-    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is False
+    assert strategy_m.fallback_resolved(project, {"sol_fallback"}) is False
     runtime.append_receipt(project, {
         "receipt_id": "fallback",
         "workflow_stage": "sol_fallback",
         "exit_code": 0,
         "outputs": [runtime.file_record(path)],
     })
-    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is True
+    assert strategy_m.fallback_resolved(project, {"sol_fallback"}) is True
     write(path, json.dumps({
         "scope": "targeted_title_or_critical_major",
         "status": "needs_human",
         "unresolved_findings": 1,
     }))
-    assert strategy_c.fallback_resolved(project, {"sol_fallback"}) is False
+    assert strategy_m.fallback_resolved(project, {"sol_fallback"}) is False
 
 
 def test_term_decisions_accept_mpi_authority_and_detect_stale_context(installation, tmp_path):
@@ -469,11 +537,11 @@ def test_term_decisions_accept_mpi_authority_and_detect_stale_context(installati
         }],
     })
 
-    receipt = strategy_c.record_term_decisions(project, source, decisions, term_map)
+    receipt = strategy_m.record_term_decisions(project, source, decisions, term_map)
     assert receipt["summary"]["frozen_count"] == 1
     write(source, "三轮体空（改）\n品牌不断被贬值\n")
-    with pytest.raises(runtime.StrategyCError, match="source SHA-256 is stale"):
-        strategy_c.validate_term_decisions(source, decisions)
+    with pytest.raises(runtime.StrategyMError, match="source SHA-256 is stale"):
+        strategy_m.validate_term_decisions(source, decisions)
 
 
 def test_non_mpi_frozen_term_requires_admissible_web_evidence(installation, tmp_path):
@@ -499,8 +567,8 @@ def test_non_mpi_frozen_term_requires_admissible_web_evidence(installation, tmp_
         "source_sha256": runtime.sha256_file(source),
         "items": [base_item],
     })
-    with pytest.raises(runtime.StrategyCError, match="requires external evidence"):
-        strategy_c.validate_term_decisions(source, decisions)
+    with pytest.raises(runtime.StrategyMError, match="requires external evidence"):
+        strategy_m.validate_term_decisions(source, decisions)
 
     base_item["external_evidence"] = [{
         "source_type": "cbeta",
@@ -515,7 +583,7 @@ def test_non_mpi_frozen_term_requires_admissible_web_evidence(installation, tmp_
         "source_sha256": runtime.sha256_file(source),
         "items": [base_item],
     })
-    assert strategy_c.validate_term_decisions(source, decisions)["human_review_count"] == 1
+    assert strategy_m.validate_term_decisions(source, decisions)["human_review_count"] == 1
 
 
 def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path):
@@ -530,11 +598,11 @@ def test_source_analysis_reuse_requires_exact_source_hash(installation, tmp_path
         "reasoning_effort": "high",
         "analyses": [],
     })
-    receipt = strategy_c.reuse_source_analysis(project, source, analysis)
+    receipt = strategy_m.reuse_source_analysis(project, source, analysis)
     assert receipt["workflow_stage"] == "flash_analysis_reuse"
     write(source, "原文已改\n")
-    with pytest.raises(runtime.StrategyCError, match="source SHA-256 changed"):
-        strategy_c.reuse_source_analysis(project, source, analysis)
+    with pytest.raises(runtime.StrategyMError, match="source SHA-256 changed"):
+        strategy_m.reuse_source_analysis(project, source, analysis)
 
 
 def test_disposable_fault_suite_restores_real_installation(installation):

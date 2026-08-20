@@ -1,0 +1,7 @@
+interface:
+  display_name: "MPI M 方案翻译"
+  short_description: "Sol Medium Buddhist translation with audited review"
+  brand_color: "#8A4B2A"
+  default_prompt: "Use $mpi-strategy-m to translate this file with the audited M Strategy workflow."
+policy:
+  allow_implicit_invocation: true

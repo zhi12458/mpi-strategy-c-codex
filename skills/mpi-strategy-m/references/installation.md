@@ -3,7 +3,7 @@
 Run from the installed skill directory:
 
 ```text
-python scripts/strategy_c.py install
+python scripts/strategy_m.py install
 ```
 
 The command uses the repository `dependency-lock.json`, installs or verifies

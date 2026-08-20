@@ -1,57 +1,30 @@
-# mpi-strategy-c-codex
+# mpi-strategy-m-codex
 
-Audited installer and Codex orchestration skill for the MPI Flash → Sol → Pro
-Chinese-English Buddhist translation workflow. It deliberately contains no
-replacement source extractor, MPI glossary, Djot generator, DOCX renderer, or
-translation/subtitle QA logic; those operations must come from the locked
-`translation-toolkit` Git submodule.
+Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
+translation. M 1.0 fixes the model roles as V4 Flash source analysis,
+GPT-5.6-Sol Medium drafting/accuracy/concision, two V4 Pro bilingual reviews,
+and Sol High targeted fallback after review two only.
 
-## Current release state
+The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
+subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-Ready through two verified compatibility forks:
+- `mpi-translations` at `f3e7ad8868954b2dbc9258ef179394a1e26210e9`;
+- `translation-toolkit` at `2805cc742100b1bf294780572c2f65a1ab31567a`.
 
-- [MPI compatibility fork](https://github.com/zhi12458/mpi-translations),
-  locked at `f3e7ad8868954b2dbc9258ef179394a1e26210e9`;
-- [translation-toolkit compatibility fork](https://github.com/zhi12458/translation-toolkit),
-  locked at `2805cc742100b1bf294780572c2f65a1ab31567a`.
+They are verified forks, not official upstream releases. Moving branches are
+never followed. Every installation must pass repository verification, both
+doctors, disposable fault injection, and a public live smoke before its
+M-specific `READY.json` becomes ready.
 
-They are not represented as official releases. `dependency-lock.json` also
-records the official SourceHut/Codeberg origins and the upstream base SHAs. The
-installer never follows a moving `main`: it checks out the two exact release
-SHAs, and the MPI checkout contains the toolkit as its real pinned Git
-submodule.
+M is invoked only by explicit wording such as “M方案”, “M策略”, “按M翻译”, or
+`$mpi-strategy-m`. Generic translation requests are outside its trigger.
 
-See `INSTALL_PROMPT.zh-CN.md` for the customer one-message setup prompt and
-`CUSTOMER_PROMPTS.zh-CN.md` for normal document/audio/video requests.
-
-## What is implemented
-
-- macOS Apple Silicon and Windows x64 managed roots, HTTPS Git locking, real
-  MPI toolkit submodule initialization, atomic repair, both doctors, and
-  hash-bound `READY.json`;
-- native masked DeepSeek credential storage and exact SHA verification for the
-  one supported Whisper model;
-- natural-language document/audio/video routing, locked whisper.cpp media
-  transcription, Flash `high` → GPT-5.6-Sol `medium` → Pro `max` separation,
-  with Sol `high` limited to targeted unresolved title/major adjudication;
-- uncertainty-triggered terminology verification with source/context hashes,
-  admissible web evidence, human-review routing, and reusable decision records;
-- a unified toolkit executor, append-only child receipts for every MPI term
-  search, model receipts, current-artifact freshness checks, and MANIFEST;
-- strict translation, bilingual, DOCX fidelity, subtitle, dependency-fault,
-  and live public-fixture smoke gates.
-
-Local validation:
+Validation:
 
 ```text
 python -m pytest -q
-python skills/mpi-strategy-c/scripts/strategy_c.py doctor
+python skills/mpi-strategy-m/scripts/strategy_m.py doctor
 ```
 
-The installer writes `ready: true` only after exact repository verification,
-both doctors, dependency fault injection, and a live non-private model smoke
-all pass on that customer's computer.
-
-Sol medium is a provisional default, not a universal winner. It becomes the
-permanent default only after two additional cross-genre comparisons satisfy
-the policy in `skills/mpi-strategy-c/references/model-policy.md`.
+See `INSTALL_PROMPT.zh-CN.md`, `CUSTOMER_PROMPTS.zh-CN.md`, and
+`M-vs-C-vs-A.zh-CN.md`.

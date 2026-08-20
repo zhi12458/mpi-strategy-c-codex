@@ -8,7 +8,7 @@ import getpass
 import sys
 
 
-SERVICE = "mpi-strategy-c-deepseek"
+SERVICE = "mpi-strategy-m-deepseek"
 ACCOUNT = "default"
 
 
@@ -29,7 +29,7 @@ def native_prompt() -> str:
         import tkinter as tk
 
         root = tk.Tk()
-        root.title("MPI Strategy C")
+        root.title("MPI Strategy M")
         root.resizable(False, False)
         value = tk.StringVar()
         tk.Label(root, text="DeepSeek API Key").pack(padx=24, pady=(18, 6))

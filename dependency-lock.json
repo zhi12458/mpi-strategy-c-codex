@@ -1,6 +1,9 @@
 {
   "schema_version": 1,
-  "skill_version": "0.2.0",
+  "strategy_id": "M",
+  "workflow_version": "1.0.0",
+  "skill_version": "1.0.0",
+  "terminology_policy_version": "1.0.0",
   "release_ready": true,
   "release_status": "verified_compatibility_forks",
   "mpi_translations": {
@@ -51,11 +54,41 @@
     "review": {"provider": "deepseek", "model": "deepseek-v4-pro", "reasoning_effort": "max"}
   },
   "model_policy": {
-    "translation_default": "provisional",
+    "translation_default": "fixed",
+    "contract_stable": true,
+    "full_document_reasoning_effort": "medium",
+    "accuracy_revision_required": true,
+    "independent_concision_pass_required": true,
+    "bilingual_review_rounds": 2,
     "fallback_scope": "targeted_title_or_critical_major",
-    "additional_cross_genre_tests": 2,
-    "promotion_requires_additional_wins": 1,
-    "promotion_requires_average_blockers_no_worse": true
+    "fallback_after_review_round": 2,
+    "universal_model_superiority_claimed": false
+  },
+  "fixed_terms": {
+    "济群法师": "Master Jiqun",
+    "大道大商": "Great Path, Great Business"
+  },
+  "validation_baseline": {
+    "name": "Great Path, Great Business M3 bounded style polish",
+    "source_sha256": "09e326b291653c0c3c321a1ef1eee81ad6742a9609bb4435a800e82229a22e98",
+    "final_target_sha256": "5ca852fbbaba9ac799e01d965e38f1ed65a3dc1e0e15ccebb9629e85ac63c889",
+    "term_map_sha256": "141336daba8fac1ac6ac5cc83ce0ad8a09b214c8867ec3ce8c74a0b944a41516",
+    "blind_judgment_target_sha256": "d76d55a85ca06eb39f6531d9963e674e70dcc49bd821bac593659ec5e20dcb03",
+    "blind_results": {
+      "gpt_5_6_sol_high": {"m3": 96.9, "m2": 95.6, "winner": "m3", "blocking_findings": 0},
+      "deepseek_v4_pro_max": {"m3": 93, "m2": 92, "winner": "m3", "blocking_findings": 0}
+    },
+    "targeted_final_gate": {
+      "scope": "L344",
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "review_round": 3,
+      "status": "clear",
+      "blocking_findings": 0,
+      "findings_sha256": "169ed9921e1dfd37e05ad06bb611be25a25c15a67205ac7899099397fc69680b",
+      "certificate_sha256": "f07284fa4aff6b37366cc5d9efb5103975db2157ff0768caa44d470f8ad157c1"
+    },
+    "final_delta": "L344 preserves the generic singular trainee, the go-into-business timing, your company, and the repeated twenty-percent reference; targeted V4 Pro round 3 is clear"
   },
   "compatibility_policy": {
     "official_upstreams_unchanged": true,
