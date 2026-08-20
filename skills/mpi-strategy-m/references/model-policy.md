@@ -1,4 +1,4 @@
-# M 1.0.11 model policy
+# M 1.0.12 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
@@ -33,7 +33,7 @@ better than every model or reasoning level.
   reconciliation does not generate new semantics, change the model or window,
   or emit source text to logs. It runs before the complete v3 full-source
   validator and is recorded in the final artifact configuration. Existing
-  1.0.7 through 1.0.10 partial checkpoints remain compatible because the checkpoint
+  1.0.7 through 1.0.11 partial checkpoints remain compatible because the checkpoint
   request configuration is unchanged.
   After schema validation but before a generated component is accepted, the
   toolkit also requires each designated semantic-evidence value to occur
@@ -43,6 +43,12 @@ better than every model or reasoning level.
   and schema. This prevalidation does not weaken or replace the complete v3
   final validator. Its mode is additive final-artifact metadata and is absent
   from checkpoint request configuration, preserving checkpoint compatibility.
+  The same acceptance point prevalidates every v3 rule decidable within one
+  component: Chinese analytical prose, verbatim evidence, explicit/null/
+  evidence consistency, temporal-marker coverage, reference and compressed-
+  clause roles, and constraints-internal allusion preservation. Violations
+  consume only the existing bounded retry for that component. Cross-component
+  status and temporal-to-constraint consistency remain final-v3 checks.
   Audited tool receipts may retain only strict provider-body-free diagnostics:
   an allowlisted error code, component, paragraph ID, retryability, and bounded
   transport or completion counters. Provider bodies and reasoning text remain
