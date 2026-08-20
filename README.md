@@ -1,30 +1,30 @@
 # mpi-strategy-m-codex
 
 Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
-translation. M 1.0.5 fixes the model roles as V4 Flash source analysis,
+translation. M 1.0.6 fixes the model roles as V4 Flash source analysis,
 GPT-5.6-Sol Medium drafting/accuracy/concision, two V4 Pro bilingual reviews,
 and Sol High targeted fallback after review two only.
 
-M 1.0.5 also makes cultural allusions an audited hard gate: Flash enumerates
+M 1.0.6 also makes cultural allusions an audited hard gate: Flash enumerates
 them, authoritative web evidence is receipted before Sol starts, and Pro checks
 their contextual meaning independently. `独善其身` is a release regression.
 
-M 1.0.5 also retains the temporal/aspect, compressed-clause implicit
+M 1.0.6 also retains the temporal/aspect, compressed-clause implicit
 subjects, semantic-role separation, and per-paragraph Pro audit coverage
 machine-enforced release gates.
 
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `84e2869fcbfee872c58537b8a054a37204bd46ef`;
-- `translation-toolkit` at `86236e0a5056aba5686df3dbcc522b49fd66fc9e`.
+- `mpi-translations` at `9da67c3781018da05e090822c5dc75fae35c7236`;
+- `translation-toolkit` at `e8f69457a82315df7bfedcb2bf051798eec3cb88`.
 
-M 1.0.5 also closes the fixed-term provenance gap: the locked toolkit now
+M 1.0.6 also closes the fixed-term provenance gap: the locked toolkit now
 searches MPI first and accepts explicit, auditable `--fixed-term` arguments,
 so release terms such as `济群法师` → `Master Jiqun` are created by toolkit
 rather than by an unreceipted edit.
 
-M 1.0.5 bounds long-document Flash requests without reducing semantic
+M 1.0.6 bounds long-document Flash requests without reducing semantic
 coverage. Each serial batch carries the exact requested text plus three
 neighbouring paragraphs on each side, preserves physical blank lines, and
 includes only terms present in that window. Every frozen nonblank paragraph is
@@ -35,7 +35,10 @@ component. Each two-paragraph batch is generated in seven smaller source-only
 Flash high components—core, temporal, three bounded operator groups, reference,
 and constraints—then merged by paragraph ID and accepted only after the
 complete v3 validator passes. Successful components are retained in memory
-while only a failed component is retried.
+while only a failed component is retried. If unchanged retries are exhausted,
+the locked toolkit retries that component one paragraph at a time and applies
+the same schema, evidence, coverage, and full-source validators before the
+batch may be checkpointed.
 
 They are verified forks, not official upstream releases. Moving branches are
 never followed. Every installation must pass repository verification, both
