@@ -5,11 +5,12 @@ better than every model or reasoning level.
 
 - V4 Flash `high`: source-only semantic analysis; exact-source-hash reuse;
   paragraph-level temporal, elliptical-subject, and cultural-allusion gates.
-  Long-document requests use the locked complete paragraph-ID and heading
-  structure plus an exact three-neighbour local window. Chinese source text appears in
-  only one evidence window, and 8192 completion tokens are reserved for
-  thinking plus final JSON. This changes request packaging, not full-document
-  paragraph coverage or local v3 validation.
+  Long-document requests use an exact three-neighbour local window with
+  physical blank lines preserved and relevant term entries only. All frozen
+  nonblank paragraphs are covered exactly once across the checkpointed serial
+  run. 8192 completion tokens are reserved for thinking plus final JSON, and an
+  empty final response gets at most five unchanged technical retries. This
+  changes request packaging, not full-document coverage or local v3 validation.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the

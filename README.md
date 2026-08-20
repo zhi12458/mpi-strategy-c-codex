@@ -16,8 +16,8 @@ machine-enforced release gates.
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `381025a279f7332932c8fdbc3c0e01d7a1b1f784`;
-- `translation-toolkit` at `7d61eaff7f03ee370815f75d44d57193c3d63a86`.
+- `mpi-translations` at `4e5607077aecd342b8859e10b828daa4640fd802`;
+- `translation-toolkit` at `e637a78cc8c9277027ae16abdce3cb0a21d1c15d`.
 
 M 1.0.4 also closes the fixed-term provenance gap: the locked toolkit now
 searches MPI first and accepts explicit, auditable `--fixed-term` arguments,
@@ -25,12 +25,12 @@ so release terms such as `济群法师` → `Master Jiqun` are created by toolki
 rather than by an unreceipted edit.
 
 M 1.0.4 bounds long-document Flash requests without reducing semantic
-coverage. Each serial batch carries every paragraph ID and the complete heading
-hierarchy, the exact requested text plus three neighbouring paragraphs on each
-side, and only terms present in that window. The Chinese source text appears in one
-evidence window only. Every frozen paragraph is still analyzed, the full local
-v3 schema remains the acceptance gate, and 8192 completion tokens are reserved
-so Flash thinking cannot consume the final JSON budget.
+coverage. Each serial batch carries the exact requested text plus three
+neighbouring paragraphs on each side, preserves physical blank lines, and
+includes only terms present in that window. Every frozen nonblank paragraph is
+still analyzed exactly once across the checkpointed run. The full local v3
+schema remains the acceptance gate, 8192 completion tokens are reserved, and
+empty final content receives at most five unchanged technical retries.
 
 They are verified forks, not official upstream releases. Moving branches are
 never followed. Every installation must pass repository verification, both
