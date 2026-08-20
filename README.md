@@ -16,8 +16,8 @@ machine-enforced release gates.
 The installer delegates all extraction, terminology, Djot, bilingual, DOCX,
 subtitle, and mechanical QA work to exact locked compatibility-fork commits:
 
-- `mpi-translations` at `4e5607077aecd342b8859e10b828daa4640fd802`;
-- `translation-toolkit` at `e637a78cc8c9277027ae16abdce3cb0a21d1c15d`.
+- `mpi-translations` at `fda001ae477d7fbb0a17082c0f338e983d2eb96f`;
+- `translation-toolkit` at `b80ceb03c0b076228106c71367478cd93e8fa769`.
 
 M 1.0.4 also closes the fixed-term provenance gap: the locked toolkit now
 searches MPI first and accepts explicit, auditable `--fixed-term` arguments,
@@ -30,7 +30,10 @@ neighbouring paragraphs on each side, preserves physical blank lines, and
 includes only terms present in that window. Every frozen nonblank paragraph is
 still analyzed exactly once across the checkpointed run. The full local v3
 schema remains the acceptance gate, 8192 completion tokens are reserved, and
-empty final content receives at most five unchanged technical retries.
+empty final content receives at most five unchanged technical retries. Each
+batch is generated in four smaller source-only Flash high components—core,
+scope, reference, and constraints—then merged by paragraph ID and accepted
+only after the complete v3 validator passes.
 
 They are verified forks, not official upstream releases. Moving branches are
 never followed. Every installation must pass repository verification, both

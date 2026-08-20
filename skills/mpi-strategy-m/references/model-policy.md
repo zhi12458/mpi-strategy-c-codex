@@ -11,6 +11,9 @@ better than every model or reasoning level.
   run. 8192 completion tokens are reserved for thinking plus final JSON, and an
   empty final response gets at most five unchanged technical retries. This
   changes request packaging, not full-document coverage or local v3 validation.
+  Each batch uses four smaller Flash high components—core predicates/relations,
+  time/scope, reference/elliptical subject, and allusions/constraints. Toolkit
+  merges them by paragraph ID and accepts only the complete v3 object.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the

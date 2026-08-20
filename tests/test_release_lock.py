@@ -49,6 +49,10 @@ def test_public_release_uses_exact_verified_compatibility_forks():
     assert lock["model_policy"]["source_analysis_context_window_paragraphs"] == 3
     assert lock["model_policy"]["source_analysis_max_completion_tokens"] == 8192
     assert lock["model_policy"]["source_analysis_retry_limit"] == 5
+    assert lock["model_policy"]["source_analysis_component_mode"] == "four-pass-merge"
+    assert lock["model_policy"]["source_analysis_components"] == [
+        "core", "scope", "reference", "constraints"
+    ]
     assert lock["model_policy"]["semantic_review_schema_version"] == 3
     assert lock["model_policy"]["cultural_allusions_required"] is True
     assert lock["model_policy"]["temporal_relations_required"] is True
