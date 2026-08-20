@@ -1,4 +1,4 @@
-# M 1.0.6 model policy
+# M 1.0.7 model policy
 
 M is a stable workflow contract, not a claim that Sol Medium is universally
 better than every model or reasoning level.
@@ -8,15 +8,20 @@ better than every model or reasoning level.
   Long-document requests use an exact three-neighbour local window with
   physical blank lines preserved and relevant term entries only. All frozen
   nonblank paragraphs are covered exactly once across the checkpointed serial
-  run. 8192 completion tokens are reserved for thinking plus final JSON, and an
-  empty final response gets at most five unchanged technical retries. This
-  changes request packaging, not full-document coverage or local v3 validation.
+  run. The primary request reserves 8192 completion tokens for thinking plus
+  final JSON. If Flash returns empty final content or reaches that limit, the
+  next retry keeps Flash `high` and the exact same Chinese/component/schema but
+  omits the explicit completion cap, matching the verified C provider envelope.
+  Other validation failures remain capped. This changes request recovery, not
+  full-document coverage or local v3 validation.
   Each two-paragraph batch uses seven Flash high components—core, temporal,
   negation/modality, quantity/degree, tense/aspect/other,
   reference/elliptical subject, and allusions/constraints. Time and operator
   components read only the current paragraph; reference keeps a three-neighbour
   window. Toolkit retries only the failed component, merges all components by
-  paragraph ID, and accepts only the complete v3 object.
+  paragraph ID, and accepts only the complete v3 object. The v3 configuration
+  schema explicitly accepts both component fallback and completion recovery
+  metadata, preventing a valid Flash run from failing during atomic write.
 - GPT-5.6-Sol `medium`: full draft, accuracy revision, independent concision.
 - V4 Pro `max`: two bilingual reviews, isolated from Flash analysis.
 - GPT-5.6-Sol `high`: targeted title/critical/major fallback only after the
