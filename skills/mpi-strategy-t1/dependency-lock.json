@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "strategy_id": "T1",
+  "workflow_version": "1.0.1",
+  "installer_version": "1.0.0",
+  "release_ready": true,
+  "release_status": "verified_compatibility_forks",
+  "managed_root_env": "MPI_STRATEGY_T1_ROOT",
+  "mpi_translations": {
+    "origin": "https://github.com/zhi12458/mpi-translations.git",
+    "expected_sha": "f3e7ad8868954b2dbc9258ef179394a1e26210e9",
+    "compatibility_fork": true,
+    "upstream_origin": "https://git.sr.ht/~iacore/mpi-translations/",
+    "upstream_base_sha": "4a6d4af31c89d3ce43d010550e6c7090587e5ebf",
+    "required_files": [
+      ".gitmodules",
+      "AGENTS.md",
+      "scripts/doctor.py",
+      "strategy-c-release.json"
+    ]
+  },
+  "translation_toolkit": {
+    "origin": "https://github.com/zhi12458/translation-toolkit.git",
+    "expected_sha": "2805cc742100b1bf294780572c2f65a1ab31567a",
+    "compatibility_fork": true,
+    "upstream_origin": "https://codeberg.org/eastwind/translation-toolkit.git",
+    "upstream_base_sha": "07ebbc90c60c32d9078cceac02d0d502d37b6c0c",
+    "submodule_path": "toolkit",
+    "required_files": [
+      "AGENTS.md",
+      "scripts/doctor.py",
+      "scripts/source2dj.py",
+      "scripts/docx2dj.py",
+      "scripts/build-term-map.py",
+      "terms-database/search.py",
+      "terms-database/termlib.sqlite",
+      "scripts/deepseek-source-analysis.py",
+      "scripts/freeze-target.py",
+      "scripts/gen-bilingual.py",
+      "scripts/deepseek-review.py",
+      "scripts/check-translation.py",
+      "scripts/dj2docx.py",
+      "scripts/check-docx.py"
+    ]
+  },
+  "omp": {
+    "executable": "omp",
+    "validated_version": "17.3.4",
+    "package": "@oh-my-pi/pi-coding-agent@17.3.4",
+    "official_origin": "https://github.com/can1357/oh-my-pi",
+    "credential_store": "~/.omp/agent/agent.db",
+    "openai_provider": "openai-codex",
+    "personal_workspace_confirmation_required": true
+  },
+  "python": {
+    "minimum_version": "3.11",
+    "packages": ["keyring>=25,<27"]
+  },
+  "system_dependencies": {
+    "required_commands": ["git", "pandoc", "omp"],
+    "docx_renderer_candidates": ["libreoffice", "soffice"]
+  },
+  "credential_policy": {
+    "deepseek_service": "mpi-strategy-t1-deepseek",
+    "deepseek_account": "default",
+    "forbid_chat_input": true,
+    "forbid_command_argument": true,
+    "inject_child_environment_only": true
+  },
+  "models": {
+    "source_analysis": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "selector": "deepseek/deepseek-v4-flash",
+      "reasoning_effort": "high"
+    },
+    "translation_and_self_review": {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "selector": "openai-codex/gpt-5.6-sol",
+      "reasoning_effort": "high"
+    },
+    "bilingual_review": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "selector": "deepseek/deepseek-v4-pro",
+      "reasoning_effort": "max"
+    }
+  },
+  "required_gates": [
+    "skill_manifest",
+    "exact_locked_repositories",
+    "repository_doctors",
+    "disposable_fault_injection",
+    "omp_exact_version",
+    "personal_openai_workspace_confirmation",
+    "deepseek_os_vault_credential",
+    "locked_model_catalog",
+    "public_three_model_live_smoke",
+    "public_mechanical_and_docx_smoke"
+  ],
+  "smoke_policy": {
+    "private_content_allowed": false,
+    "explicit_confirmation_required": true,
+    "maximum_seconds_per_model": 180,
+    "markers": {
+      "source_analysis": "T1_FLASH_OK",
+      "translation_and_self_review": "T1_SOL_OK",
+      "bilingual_review": "T1_PRO_OK"
+    }
+  },
+  "default_routing": {
+    "enabled": true,
+    "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
+    "explicit_overrides": ["C", "M", "M2", "user-defined workflow"],
+    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
+  },
+  "validation_baseline": {
+    "project": "pure-land-five-elements-m3-vs-cplus-20260822/C-plus",
+    "source_sha256": "4f655d8d6fd0bb3e2d6eb89e339f632ae5938e77390e191110fe5c30bce85e23",
+    "target_sha256": "1ce51560ffeb0d80b75a5310fdd411ef374324a9be3d26a2fca1053943d68ea3",
+    "sol_high_score": 95,
+    "deepseek_v4_pro_max_score": 94,
+    "critical_or_major_blockers": 0
+  },
+  "compatibility_policy": {
+    "official_upstreams_unchanged": true,
+    "automatic_main_updates": false,
+    "exact_sha_required": true,
+    "label": "verified compatibility fork; not an official upstream release"
+  }
+}

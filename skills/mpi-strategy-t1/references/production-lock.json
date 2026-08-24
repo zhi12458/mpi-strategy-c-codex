@@ -6,7 +6,14 @@
   "derived_from": "human-adopted C+ workflow",
   "adopted_on": "2026-08-23",
   "revised_on": "2026-08-24",
-  "change_summary": "Make T1.0.1 the default for in-scope MPI Buddhist document translation while preserving explicit strategy overrides; require auditable authoritative-web verification when internal terminology is missing, conflicting, or substantively uncertain; unresolved core items require human judgment.",
+  "change_summary": "Make T1.0.1 the default for in-scope MPI Buddhist document translation while preserving explicit strategy overrides; require the separately versioned T1 installer readiness gate; require auditable authoritative-web verification when internal terminology is missing, conflicting, or substantively uncertain; unresolved core items require human judgment.",
+  "installer_runtime": {
+    "installer_version": "1.0.0",
+    "dependency_lock": "dependency-lock.json",
+    "ready_evidence": "READY.json",
+    "required_before_production_execution": true,
+    "skill_files_alone_are_sufficient": false
+  },
   "default_routing": {
     "enabled": true,
     "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
@@ -51,6 +58,7 @@
     }
   },
   "required_gates": [
+    "t1_installer_ready_true",
     "frozen_source_and_metadata",
     "audited_terminology_and_fixed_expressions",
     "audited_authoritative_web_terminology_verification_when_triggered",

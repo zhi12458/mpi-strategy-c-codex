@@ -38,3 +38,10 @@ name for the validated C+ workflow and is not an alias for M, M2, or historical
 C. Its source-only analysis, Sol High translation, two independent Pro reviews,
 title audit, concision recheck, terminology web-verification gate, QA, and human
 release boundary are frozen in the skill's production lock and manifest.
+
+T1 also ships a separately versioned installer and readiness gate. It checks a
+pinned OMP release, a user-confirmed Personal OpenAI workspace, a T1-specific
+operating-system DeepSeek credential, exact MPI/toolkit compatibility-fork
+commits, repository doctors, disposable fault injection, public three-model
+smoke tests, and public mechanical/DOCX QA. Installing the skill directory by
+itself is not production readiness. See `INSTALL_PROMPT-T1.zh-CN.md`.

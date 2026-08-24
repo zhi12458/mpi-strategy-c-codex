@@ -1,6 +1,6 @@
 interface:
   display_name: "MPI T1 生产翻译"
-  short_description: "Default T1.0.1 Buddhist production workflow"
+  short_description: "Install or run the default T1.0.1 workflow"
   default_prompt: "Use $mpi-strategy-t1 to translate this document with the MPI T1 production workflow."
 policy:
   allow_implicit_invocation: true

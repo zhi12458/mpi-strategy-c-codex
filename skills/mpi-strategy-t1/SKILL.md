@@ -9,6 +9,12 @@ T1.0.1 is the production name for the C+ workflow adopted by the user after
 human adjudication. It freezes the production method, not article-specific
 wording. Do not import English from the validation article into a new project.
 
+For installation, repair, account setup, or readiness checks, read
+[references/installation.md](references/installation.md) and
+[references/readiness.md](references/readiness.md). Installing this skill alone
+does not establish a production-ready T1 runtime. Require the T1-specific
+`READY.json`; never borrow M's managed root, credentials, or receipts.
+
 Read [references/workflow.md](references/workflow.md) before translating. Read
 [references/production-lock.json](references/production-lock.json) when
 checking model roles, required gates, provenance, or version identity.
@@ -32,6 +38,10 @@ and complete its auditable authoritative-web lookup before freezing terms.
   external provider. If consent, credentials, or a required model is missing,
   stop T1 and report the blocked stage; do not downgrade the workflow while
   retaining the T1 label.
+- OMP must match the version and role selectors in `dependency-lock.json`.
+  OpenAI OAuth requires the user's confirmed Personal workspace. The DeepSeek
+  key must be entered locally through the masked T1 credential helper; never
+  request, display, log, or pass it as a command argument.
 - Freeze the Chinese source, project metadata, term map, and their SHA-256
   values before model work. Reuse source analysis only for an exact source hash
   with complete nonblank-line coverage.
