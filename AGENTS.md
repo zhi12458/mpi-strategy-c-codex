@@ -1,6 +1,7 @@
 # Repository conventions
 
-This repository installs, schedules, and audits MPI Strategy M 1.0. It must never
+This repository installs, schedules, and audits MPI Strategy M 1.0 and stores
+the separate MPI T1 production skill. It must never
 copy or reimplement translation-toolkit source extraction, MPI terminology,
 Djot canonicalization, bilingual generation, DOCX generation/QA, subtitle
 generation/QA, or deterministic translation checks.
@@ -18,3 +19,10 @@ M is a distinct strategy identity. Keep its skill name, managed root, READY,
 receipts, and model stages separate from archived Strategy C. The original C
 High workflow may be documented for comparison but must not be reactivated as
 an implicit daily translation route.
+
+T1 is also a distinct strategy identity. Keep `mpi-strategy-t1` separate from
+M. T1 is the default for MPI Chinese-English Buddhist books, articles, and
+documents when the user does not name another strategy; explicit C, M, M2, or
+another user-defined workflow overrides it. T1 source files must match their
+`MANIFEST.sha256`; do not treat T1's workflow adoption as human approval of any
+future translation.

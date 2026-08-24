@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "strategy": "MPI-T1",
+  "workflow_version": "1.0.1",
+  "production_name": "T1",
+  "derived_from": "human-adopted C+ workflow",
+  "adopted_on": "2026-08-23",
+  "revised_on": "2026-08-24",
+  "change_summary": "Make T1.0.1 the default for in-scope MPI Buddhist document translation while preserving explicit strategy overrides; require auditable authoritative-web verification when internal terminology is missing, conflicting, or substantively uncertain; unresolved core items require human judgment.",
+  "default_routing": {
+    "enabled": true,
+    "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
+    "condition": "the user requests translation without naming another strategy",
+    "explicit_overrides": ["C", "M", "M2", "user-defined workflow"],
+    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
+  },
+  "adoption_evidence": {
+    "decision": "The user reported that human adjudication selected C+ as the best version and requested it be frozen as production strategy T1.",
+    "named_human_reviewer_recorded": false,
+    "scope": "workflow baseline selection; not blanket approval of future translations"
+  },
+  "model_roles": {
+    "source_analysis": {
+      "model": "deepseek-v4-flash",
+      "reasoning_effort": "high",
+      "reads": "frozen Chinese only"
+    },
+    "translation_and_self_review": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high"
+    },
+    "bilingual_review_round_1": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max"
+    },
+    "review_application": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high"
+    },
+    "bilingual_review_round_2": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max"
+    },
+    "title_audit": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high"
+    },
+    "concision_and_chinese_recheck": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high"
+    }
+  },
+  "required_gates": [
+    "frozen_source_and_metadata",
+    "audited_terminology_and_fixed_expressions",
+    "audited_authoritative_web_terminology_verification_when_triggered",
+    "complete_source_only_analysis",
+    "full_translation_and_self_review",
+    "independent_bilingual_review_round_1",
+    "translator_adjudication_round_1",
+    "independent_bilingual_review_round_2",
+    "translator_adjudication_round_2",
+    "independent_title_and_heading_audit",
+    "independent_concision_and_full_chinese_recheck",
+    "deterministic_content_qa",
+    "docx_text_and_visual_qa_when_applicable",
+    "final_manifest"
+  ],
+  "network_terminology_policy": {
+    "trigger": "internal no-result, credible source conflict, or substantive uncertainty",
+    "receipt": "external-lookup-receipts.jsonl",
+    "privacy": "query the smallest public expression; explicit consent is required before transmitting private passage context",
+    "unresolved_core_term": "human_choice or blocked; never silently freeze",
+    "missing_receipt": "blocks affected term freeze and T1 completion"
+  },
+  "validation_baseline": {
+    "project": "pure-land-five-elements-m3-vs-cplus-20260822/C-plus",
+    "source_sha256": "4f655d8d6fd0bb3e2d6eb89e339f632ae5938e77390e191110fe5c30bce85e23",
+    "target_sha256": "1ce51560ffeb0d80b75a5310fdd411ef374324a9be3d26a2fca1053943d68ea3",
+    "sol_high_score": 95,
+    "deepseek_v4_pro_max_score": 94,
+    "critical_or_major_blockers": 0,
+    "deterministic_qa": "pass",
+    "docx_qa": "pass",
+    "visual_qa": "pass"
+  },
+  "completion_statuses": [
+    "T1 incomplete",
+    "T1 blocked",
+    "AI reviewed draft",
+    "human approved",
+    "release-ready"
+  ]
+}
