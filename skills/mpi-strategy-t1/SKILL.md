@@ -1,69 +1,51 @@
 ---
 name: mpi-strategy-t1
-description: Default MPI production workflow for Chinese-to-English Buddhist document translation. Use automatically when the user requests such a translation without naming another strategy, and when the user requests T1, T1策略, T1方案, 按T1翻译, 用T1翻译, or invokes $mpi-strategy-t1. Do not override explicit C, M, M2, media-specific, or non-Buddhist translation requests.
+description: Compatibility router and locked provider runtime for MPI T1. Use when the user explicitly requests T1-OMP, needs T1 installation or repair, validates historical T1.0/T1.1/T1.2 artifacts, or invokes $mpi-strategy-t1. Ordinary MPI Chinese-to-English Buddhist document translation now routes to the separate mpi-strategy-t1-codex production Skill.
 ---
 
-# MPI T1 Production Strategy
+# MPI T1 Compatibility Runtime
 
-T1.0.1 is the production name for the C+ workflow adopted by the user after
-human adjudication. It freezes the production method, not article-specific
-wording. Do not import English from the validation article into a new project.
+The selected quality-first production default is the separate
+`mpi-strategy-t1-codex` Skill. This package remains the locked OMP/provider
+runtime, T1-OMP rollback implementation, installer, and compatibility layer for
+historical T1 artifacts and isolated pretranslation experiments.
 
-For installation, repair, account setup, or readiness checks, read
-[references/installation.md](references/installation.md) and
-[references/readiness.md](references/readiness.md). Installing this skill alone
-does not establish a production-ready T1 runtime. Require the T1-specific
-`READY.json`; never borrow M's managed root, credentials, or receipts.
+For an ordinary MPI Chinese-to-English Buddhist book, article, or document,
+load the sibling `mpi-strategy-t1-codex` Skill and follow its production lock.
+If it is missing, report the missing package; do not silently run T1-OMP while
+retaining the T1-Codex or default-T1 label.
 
-Read [references/workflow.md](references/workflow.md) before translating. Read
-[references/production-lock.json](references/production-lock.json) when
-checking model roles, required gates, provenance, or version identity.
-When the internal termbase has no answer, sources conflict, or a wording is in
-substantive doubt, read
-[references/network-terminology-verification.md](references/network-terminology-verification.md)
-and complete its auditable authoritative-web lookup before freezing terms.
+Use this Skill directly for:
 
-## Non-negotiable boundaries
+- explicit T1-OMP translation or rollback;
+- base runtime installation, repair, readiness, credentials, or public smoke;
+- historical T1.0.1, T1.1.1, or T1.1.2 validation;
+- explicitly requested T1.2 human-quality or AI-scale pretranslation pilots;
+- bounded blinded comparisons against T1-Codex.
 
-- T1 is the default for MPI Chinese-to-English Buddhist books, articles, and
-  document translations when the user does not name another strategy. Explicit
-  “C策略”, “M策略”, “M2”, or a user-defined workflow overrides this default.
-  PPT, audio/video, and non-Buddhist general translation do not implicitly
-  route to T1; use their relevant workflow unless T1 is explicitly requested.
-- The T1 model roles are fixed: V4 Flash `high` source-only analysis;
-  GPT-5.6-Sol `high` full translation, review application, title audit, and
-  concision; V4 Pro `max` two independent bilingual reviews. Do not silently
-  substitute another model or effort level.
-- Obtain explicit consent before sending private source or draft text to an
-  external provider. If consent, credentials, or a required model is missing,
-  stop T1 and report the blocked stage; do not downgrade the workflow while
-  retaining the T1 label.
-- OMP must match the version and role selectors in `dependency-lock.json`.
-  OpenAI OAuth requires the user's confirmed Personal workspace. The DeepSeek
-  key must be entered locally through the masked T1 credential helper; never
-  request, display, log, or pass it as a command argument.
-- Freeze the Chinese source, project metadata, term map, and their SHA-256
-  values before model work. Reuse source analysis only for an exact source hash
-  with complete nonblank-line coverage.
-- Do not silently resolve an unknown, conflicting, or substantively uncertain
-  term. Search authoritative public sources, retain lookup receipts, and send
-  unresolved core titles, doctrine, quotations, names, and fixed expressions
-  to human judgment. Missing required lookup evidence blocks T1 completion.
-- Titles and headings receive an independent accuracy pass. Concision is a
-  separate full-document pass after accuracy review and must be followed by a
-  Chinese recheck.
-- Run deterministic content QA, regenerate the bilingual file from the final
-  target, create English and bilingual DOCX deliverables when requested, and
-  visually inspect every page.
-- T1 workflow completion produces an `AI reviewed draft`. Each new document
-  requires its own named human Buddhist/Dharma reviewer before it may be marked
-  `human approved` or release-ready. Adoption of T1 does not pre-approve future
-  translations.
+Read [references/production-lock.json](references/production-lock.json) for
+routing and status. Read [references/installation.md](references/installation.md)
+and [references/readiness.md](references/readiness.md) for runtime work. Read
+[references/workflow.md](references/workflow.md) for rollback and compatibility
+execution. Read [references/pretranslation-tracks.md](references/pretranslation-tracks.md)
+only for an explicitly selected pretranslation experiment, and
+[references/semantic-bridge.md](references/semantic-bridge.md) for historical
+T1.1 validation.
 
-## Completion rule
+## Boundaries
 
-Call a run `T1 complete` only when every required stage and receipt in the
-workflow reference exists, all critical/major findings are resolved or
-explicitly assigned to human judgment, deterministic and visual QA pass, and
-the final manifest matches the delivered files. Otherwise report the last
-completed stage and use `T1 incomplete` or `T1 blocked`.
+- `source.dj` is always the sole semantic authority.
+- T1-OMP prose is a rollback or comparison artifact, not an automatic source
+  of sentences for T1-Codex. Never merge the two drafts without an explicit,
+  source-checked editorial decision.
+- The base runtime retains Flash/high, Sol/high, and Pro/max selectors for
+  stable T1-OMP execution and public smoke. In the default T1-Codex workflow,
+  OMP must not execute Codex-owned drafting, adjudication, title, or concision
+  roles.
+- T1.1.2 full-document Sol restructuring and T1.2 full pretranslation remain
+  isolated experiments. The default T1-Codex workflow adopts only high-risk
+  source-bound clarification, fresh Pro challenge, exact constraint coverage,
+  and post-concision semantic regression.
+- A runtime `READY.json`, mechanical QA, model review, or strategy adoption does
+  not approve a document. Every final target remains an `AI reviewed draft`
+  until a named Buddhist/Dharma human approves its exact hash.

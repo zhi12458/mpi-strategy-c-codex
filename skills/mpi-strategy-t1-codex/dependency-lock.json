@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "strategy_id": "T1-CODEX",
+  "workflow_version": "1.1.0",
+  "installer_version": "1.0.0",
+  "release_ready": false,
+  "release_status": "production_default_selected_pending_public_smoke_and_multi_genre_validation",
+  "source_repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
+  "candidate_ref": "t1-codex-v1.1.0-candidate.1",
+  "base_runtime": {
+    "strategy_id": "T1",
+    "repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
+    "skill_path": "skills/mpi-strategy-t1",
+    "stable_ref": "t1-v1.0.1-installer-1.0.0",
+    "stable_commit": "af795df625eca95ab138094bd25172266007f24f",
+    "purpose": "locked OMP, credential, repository, fault-injection, Flash/high, and Pro/max runtime",
+    "base_ready_required": true
+  },
+  "omp": {
+    "validated_version": "17.3.4",
+    "package": "@oh-my-pi/pi-coding-agent@17.3.4",
+    "official_origin": "https://github.com/can1357/oh-my-pi",
+    "production_roles": [
+      "source_analysis",
+      "semantic_bridge_generation",
+      "semantic_bridge_challenge",
+      "bilingual_review_round_1",
+      "bilingual_review_round_2",
+      "post_concision_semantic_regression"
+    ],
+    "codex_owned_roles_forbidden": [
+      "translation_and_self_review",
+      "review_application",
+      "title_audit",
+      "concision_and_chinese_recheck"
+    ]
+  },
+  "models": {
+    "source_analysis": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "selector": "deepseek/deepseek-v4-flash",
+      "reasoning_effort": "high",
+      "execution_surface": "locked OMP runtime"
+    },
+    "semantic_bridge_generation": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "selector": "deepseek/deepseek-v4-flash",
+      "reasoning_effort": "high",
+      "execution_surface": "locked OMP runtime"
+    },
+    "independent_review": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "selector": "deepseek/deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "locked OMP runtime"
+    },
+    "codex_translation_and_editing": {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "task_setting_verification_required": true
+    }
+  },
+  "system_dependencies": {
+    "required_commands": ["git", "python3", "pandoc", "omp"],
+    "docx_renderer_candidates": ["libreoffice", "soffice"]
+  },
+  "required_gates": [
+    "skill_manifest",
+    "base_t1_ready_true",
+    "omp_exact_version",
+    "flash_high_public_smoke",
+    "pro_max_public_smoke",
+    "codex_gpt_5_6_sol_high_task_settings",
+    "role_policy_validation",
+    "high_risk_bridge_contract_validation",
+    "post_concision_regression_contract_validation",
+    "three_genre_human_validation",
+    "document_specific_human_release_gate"
+  ],
+  "privacy": {
+    "public_smoke_private_content_allowed": false,
+    "private_provider_transmission_requires_explicit_consent": true,
+    "credentials_in_chat_or_command_arguments_forbidden": true
+  }
+}

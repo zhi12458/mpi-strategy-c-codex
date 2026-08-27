@@ -1,6 +1,6 @@
 interface:
-  display_name: "MPI T1 生产翻译"
-  short_description: "Install or run the default T1.0.1 workflow"
-  default_prompt: "Use $mpi-strategy-t1 to translate this document with the MPI T1 production workflow."
+  display_name: "MPI T1 兼容运行时"
+  short_description: "Install, repair, or run the explicit T1-OMP fallback"
+  default_prompt: "Use $mpi-strategy-t1 to inspect or run the locked T1-OMP compatibility runtime."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

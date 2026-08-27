@@ -194,6 +194,12 @@ def dependency_report(lock: dict) -> dict:
         keyring_ok = True
     except ImportError:
         keyring_ok = False
+    try:
+        import yaml  # noqa: F401
+
+        yaml_ok = True
+    except ImportError:
+        yaml_ok = False
     missing = [name for name, path in commands.items() if not path]
     if not any(renderers):
         missing.append("libreoffice/soffice")
@@ -207,6 +213,7 @@ def dependency_report(lock: dict) -> dict:
         "commands": commands,
         "docx_renderer": next((item for item in renderers if item), None),
         "keyring": keyring_ok,
+        "pyyaml": yaml_ok,
         "missing": missing,
     }
 

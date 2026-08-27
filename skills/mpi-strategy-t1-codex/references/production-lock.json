@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "strategy": "MPI-T1-CODEX",
+  "workflow_version": "1.1.0",
+  "production_name": "T1-Codex",
+  "production_default_selected": true,
+  "release_ready": false,
+  "adopted_on": "2026-08-28",
+  "derived_from": "human-adopted C+ quality workflow plus repeated human preference for the T1-Codex final English over the comparable T1-OMP final English",
+  "change_summary": "Select current Codex as the production English owner while retaining locked Flash/high source analysis, high-risk bridge generation, fresh Pro/max Chinese challenge, two bilingual reviews, title and concision gates, post-concision semantic regression, and target-specific human approval.",
+  "selection_evidence": {
+    "prior_model_only_result": "A frozen same-source diagnostic comparison preferred T1-OMP by a small margin; it explicitly was not named human adjudication.",
+    "new_human_result": "The user reported on 2026-08-28 that the 2026-08-27 human reviews consistently found T1-Codex slightly better than T1-OMP.",
+    "decision_rule": "Direct whole-draft human English judgment outranks model aggregate scores, finding counts, backtranslation, length, and mechanical QA when both candidates have passed blocking semantic and structural gates.",
+    "scope": "workflow selection only; it does not approve any future translation or waive document-specific human review"
+  },
+  "source_authority": {
+    "file": "source.dj",
+    "sole_semantic_authority": true,
+    "bridge_is_authoritative": false,
+    "controlled_chinese_is_authoritative": false,
+    "conflict_resolution": "source.dj wins; unresolved core ambiguity requires a named human decision or blocks drafting"
+  },
+  "default_routing": {
+    "enabled": true,
+    "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
+    "selected_workflow": "t1_codex_quality",
+    "explicit_overrides": ["T1-OMP", "C", "M", "M2", "user-defined workflow"],
+    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
+  },
+  "workflow_modes": {
+    "t1_codex_quality": {
+      "production_default": true,
+      "english_owner": "current Codex task configured as GPT-5.6-Sol/high",
+      "source_and_review_runtime": "locked OMP for Flash/high and fresh Pro/max roles"
+    },
+    "t1_omp_rollback": {
+      "production_default": false,
+      "activation": "explicit user request, Codex-role unavailability, production-gate failure, or bounded blinded comparison",
+      "automatic_prose_merging_allowed": false
+    },
+    "full_pretranslation_experiments": {
+      "production_default": false,
+      "modes": ["T1.1.2 Sol semantic restructuring", "T1.2 human_quality", "T1.2 ai_scale"],
+      "activation": "explicit user selection plus isolated evidence",
+      "silent_promotion_allowed": false
+    }
+  },
+  "model_roles": {
+    "source_analysis": {
+      "model": "deepseek-v4-flash",
+      "reasoning_effort": "high",
+      "execution_surface": "locked OMP",
+      "reads": "frozen Chinese source-side inputs only; no English"
+    },
+    "semantic_bridge_generation": {
+      "model": "deepseek-v4-flash",
+      "reasoning_effort": "high",
+      "execution_surface": "locked OMP",
+      "scope": "high-risk source units only",
+      "writes_english": false
+    },
+    "semantic_bridge_challenge": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "fresh locked OMP session",
+      "reads_english": false
+    },
+    "translation_and_self_review": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "competing_english_allowed": false
+    },
+    "bilingual_review_round_1": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "fresh locked OMP session",
+      "blind_to": ["source analysis", "bridge artifacts", "competing translations", "future reviews"]
+    },
+    "review_application_round_1": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task"
+    },
+    "bilingual_review_round_2": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "new locked OMP session",
+      "blind_to": ["round one", "source analysis", "bridge artifacts", "competing translations"]
+    },
+    "review_application_round_2": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task"
+    },
+    "title_audit": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task"
+    },
+    "concision_and_chinese_recheck": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task"
+    },
+    "post_concision_semantic_regression": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "fresh locked OMP session",
+      "checks": "both Chinese-to-English coverage and English-to-Chinese support for every high-risk constraint"
+    }
+  },
+  "t1_1_2_adoption_policy": {
+    "adopted": [
+      "source-hash-bound risk registration",
+      "high-risk-only Chinese semantic clarification and English structure planning",
+      "fresh Pro/max Chinese-only challenge",
+      "constraint-to-final-target coverage",
+      "fresh post-concision bidirectional semantic regression"
+    ],
+    "not_default": [
+      "full-document controlled-Chinese rewriting",
+      "controlled Chinese as source authority",
+      "mandatory full-document Sol semantic restructuring",
+      "quality claims based on rewrite count, shorter output, or aggregate model score"
+    ]
+  },
+  "required_document_gates": [
+    "frozen_source_project_and_terminology",
+    "complete_source_only_analysis",
+    "complete_risk_register",
+    "high_risk_bridge_only",
+    "fresh_chinese_only_bridge_challenge",
+    "resolved_or_explicitly_provisional_semantic_decisions",
+    "full_codex_translation_and_self_review",
+    "complete_constraint_to_target_coverage",
+    "fresh_bilingual_review_round_1",
+    "codex_adjudication_round_1",
+    "fresh_bilingual_review_round_2",
+    "codex_adjudication_round_2",
+    "independent_title_and_heading_audit",
+    "independent_concision_and_full_original_chinese_recheck",
+    "fresh_post_concision_bidirectional_semantic_regression",
+    "deterministic_content_qa",
+    "docx_text_accessibility_and_visual_qa_when_applicable",
+    "final_manifest",
+    "named_human_release_gate"
+  ],
+  "release_validation": {
+    "required_genres": ["Dharma talk", "written article", "quotation-dense Buddhist text"],
+    "comparison": "same frozen source, terminology, review gates, and anonymous human adjudication against T1-OMP rollback",
+    "pass_rule": "T1-Codex wins or ties in all genres, has no new unresolved critical or major defect, and shows no recurring Chinese-understanding failure",
+    "current_status": "pending",
+    "release_ready_allowed_before_pass": false
+  },
+  "completion_statuses": [
+    "T1-Codex incomplete",
+    "T1-Codex blocked",
+    "AI reviewed draft",
+    "human approved",
+    "release-ready"
+  ]
+}

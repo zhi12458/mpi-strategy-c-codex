@@ -81,6 +81,14 @@ def install_system_dependencies() -> None:
     )
     if completed.returncode:
         raise StrategyT1Error("could not install Python keyring")
+    # PyYAML enables only the explicit T1.1.2 pilot. Its installation failure
+    # must not disable the T1.0.1 production baseline; readiness records the
+    # pilot capability as blocked instead.
+    run(
+        (sys.executable, "-m", "pip", "install", "PyYAML>=6,<7"),
+        Path.cwd(),
+        timeout=600,
+    )
 
 
 def git_checked(command: tuple[str, ...], cwd: Path) -> None:
@@ -249,12 +257,30 @@ def install(
     from t1_fault_injection import run_fault_tests
     from t1_smoke_test import run_smoke_test
 
+    semantic_contracts = optional_semantic_contracts(root, dependencies)
+    pretranslation_contracts = optional_pretranslation_contracts(root)
     fault = run_fault_tests(root)
     smoke = run_smoke_test(root, toolkit, lock)
     ready["fault_injection"] = {
         "status": fault["status"],
         "path": fault["report_absolute_path"],
         "sha256": fault["report_sha256"],
+    }
+    ready["semantic_restructuring_contracts"] = {
+        "status": semantic_contracts["status"],
+        "path": semantic_contracts.get("report_absolute_path"),
+        "sha256": semantic_contracts.get("report_sha256"),
+        "error": semantic_contracts.get("error"),
+        "required_for_production_baseline": False,
+        "required_for_t1_1_2_pilot": True,
+    }
+    ready["pretranslation_contracts"] = {
+        "status": pretranslation_contracts["status"],
+        "path": pretranslation_contracts.get("report_absolute_path"),
+        "sha256": pretranslation_contracts.get("report_sha256"),
+        "error": pretranslation_contracts.get("error"),
+        "required_for_production_baseline": False,
+        "required_for_t1_2_tracks": True,
     }
     ready["smoke_test"] = {
         "status": smoke["status"],
@@ -267,7 +293,50 @@ def install(
     return ready
 
 
-def verify_ready(root: Path | None = None, require_ready: bool = True) -> dict:
+def optional_semantic_contracts(root: Path, dependencies: dict) -> dict:
+    """Isolate the optional pilot gate from T1.0.1 baseline readiness."""
+    if not dependencies.get("pyyaml"):
+        return {
+            "status": "BLOCKED",
+            "error": "T1.1.2 semantic restructuring requires Python PyYAML",
+        }
+    try:
+        from semantic_bridge import run_contract_tests
+
+        return run_contract_tests(root)
+    except StrategyT1Error as exc:
+        return {
+            "status": "BLOCKED",
+            "error": str(exc),
+        }
+    except Exception as exc:
+        return {
+            "status": "BLOCKED",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+
+def optional_pretranslation_contracts(root: Path) -> dict:
+    """Keep T1.2 track readiness separate from the T1.0.1 fallback baseline."""
+    try:
+        from pretranslation import run_contract_tests
+
+        return run_contract_tests(root)
+    except StrategyT1Error as exc:
+        return {"status": "BLOCKED", "error": str(exc)}
+    except Exception as exc:
+        return {
+            "status": "BLOCKED",
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+
+
+def verify_ready(
+    root: Path | None = None,
+    require_ready: bool = True,
+    require_semantic_restructuring: bool = False,
+    require_pretranslation: bool = False,
+) -> dict:
     root = (root or managed_root()).resolve()
     lock = load_lock()
     ready = load_json(root / READY_NAME)
@@ -279,7 +348,11 @@ def verify_ready(root: Path | None = None, require_ready: bool = True) -> dict:
     manifest = verify_manifest()
     if ready.get("skill_manifest", {}).get("sha256") != manifest["sha256"]:
         raise StrategyT1Error("READY skill manifest is stale")
-    require_dependencies(lock)
+    dependencies = require_dependencies(lock)
+    if require_semantic_restructuring and not dependencies.get("pyyaml"):
+        raise StrategyT1Error(
+            "T1.1.2 semantic restructuring requires Python PyYAML"
+        )
     current_omp = omp_report(lock)
     if ready.get("omp", {}).get("version") != current_omp["version"]:
         raise StrategyT1Error("READY OMP version is stale")
@@ -301,4 +374,26 @@ def verify_ready(root: Path | None = None, require_ready: bool = True) -> dict:
         path = Path(evidence.get("path", ""))
         if evidence.get("status") != "PASS" or not path.is_file() or sha256_file(path) != evidence.get("sha256"):
             raise StrategyT1Error(f"READY {name} evidence is missing or stale")
+    if require_semantic_restructuring:
+        evidence = ready.get("semantic_restructuring_contracts", {})
+        path = Path(evidence.get("path") or "")
+        if (
+            evidence.get("status") != "PASS"
+            or not path.is_file()
+            or sha256_file(path) != evidence.get("sha256")
+        ):
+            raise StrategyT1Error(
+                "T1.1.2 semantic-restructuring capability is unavailable or stale"
+            )
+    if require_pretranslation:
+        evidence = ready.get("pretranslation_contracts", {})
+        path = Path(evidence.get("path") or "")
+        if (
+            evidence.get("status") != "PASS"
+            or not path.is_file()
+            or sha256_file(path) != evidence.get("sha256")
+        ):
+            raise StrategyT1Error(
+                "T1.2 pretranslation-track capability is unavailable or stale"
+            )
     return ready

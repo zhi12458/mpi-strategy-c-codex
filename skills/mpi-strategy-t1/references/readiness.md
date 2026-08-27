@@ -1,22 +1,31 @@
-# T1 installation evidence
+# T1 readiness evidence
 
-The managed root contains three non-secret audit files:
+The managed root records non-secret, hash-bound evidence:
 
-- `READY.json`: exact skill, installer, repository, dependency, account-choice,
-  model-catalog, fault-injection, and smoke evidence.
-- `fault-injection-report.json`: disposable tamper cases and restoration proof.
-- `smoke-test-report.json`: public-only model/tool executions with exit status,
-  duration, and SHA-256 hashes of logs and outputs. It contains no key or
-  manuscript text.
+- `READY.json`: exact skill, runtime, repositories, dependencies, account
+  confirmation, model catalog, fault injection, smoke and capability gates.
+- fault-injection and public smoke reports.
+- historical T1.1.2 semantic-restructuring contract evidence when PyYAML is
+  available.
+- T1.2 pretranslation contract evidence covering full source inventory,
+  human/AI provenance separation, blocked AI fallback, Pro decision routing and
+  accepted-artifact resolution.
 
-`READY.json` may say `ready: true` only when every gate in
-`dependency-lock.json` passes. Model listing alone does not establish usable
-credentials, and a skill manifest pass does not establish runtime readiness.
+Base `ready: true` means only the provider/T1-OMP runtime gates passed. It does
+not make the separate T1-Codex package ready. A T1.2 specialized
+runner additionally requires current `pretranslation_contracts.status: PASS`,
+an existing report with the recorded hash, and a manifest matching the current
+skill. Historical semantic runners independently require their older capability
+gate. One optional failure must not be relabeled as another mode's success.
 
-The Personal-workspace confirmation stores only the confirmation time and a
-SHA-256 of the non-secret OMP usage response. It does not store email, account
-ID, organization ID, OAuth token, or API key.
+Readiness does not select a document track, prove T1-Codex release promotion,
+prove AI-scale promotion, establish a comparison result for a new source, or
+approve a final target.
+Each document retains its own source, pretranslation, decision, review, QA and
+human-approval hashes.
 
-The DeepSeek key remains under the T1-specific operating-system credential
-service `mpi-strategy-t1-deepseek`. Runtime helpers inject it only into a child
-OMP process and remove it from their local environment mapping afterward.
+The Personal-workspace record stores no email, account ID or OAuth token. The
+DeepSeek key remains in the T1-specific operating-system credential service and
+is injected only into the child OMP process. Receipt usage counts actual locked
+model invocations; unknown token counts remain null and OMP event counts are not
+accepted as substitutes.

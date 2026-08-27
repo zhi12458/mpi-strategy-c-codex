@@ -1,100 +1,173 @@
 {
   "schema_version": 1,
   "strategy": "MPI-T1",
-  "workflow_version": "1.0.1",
-  "production_name": "T1",
-  "derived_from": "human-adopted C+ workflow",
+  "workflow_version": "1.2.0",
+  "production_name": "T1 compatibility router",
+  "selected_production_skill": "mpi-strategy-t1-codex",
+  "selected_production_workflow": "T1-Codex 1.1.0",
+  "production_default_selected": true,
+  "release_ready": false,
+  "derived_from": "human-adopted C+ workflow, same-source T1-OMP/T1-Codex evidence, and repeated human preference for the T1-Codex final English",
   "adopted_on": "2026-08-23",
-  "revised_on": "2026-08-24",
-  "change_summary": "Make T1.0.1 the default for in-scope MPI Buddhist document translation while preserving explicit strategy overrides; require the separately versioned T1 installer readiness gate; require auditable authoritative-web verification when internal terminology is missing, conflicting, or substantively uncertain; unresolved core items require human judgment.",
+  "revised_on": "2026-08-28",
+  "change_summary": "Move ordinary MPI Buddhist document translation to the independent T1-Codex quality Skill. Retain this package as the locked provider runtime, explicit T1-OMP rollback, and compatibility implementation for historical semantic and pretranslation experiments.",
+  "selection_evidence": {
+    "new_human_feedback": "The user reported that 2026-08-27 human review consistently found T1-Codex slightly better than T1-OMP.",
+    "prior_model_diagnostic": "A prior same-source model-only diagnostic preferred T1-OMP by a small margin but explicitly was not named human adjudication.",
+    "decision_rule": "When both drafts pass blocking semantic and structural gates, direct human whole-draft English judgment outranks model scores, finding counts, backtranslation, length, and mechanical QA.",
+    "approval_scope": "strategy routing only; no future target is pre-approved"
+  },
   "installer_runtime": {
-    "installer_version": "1.0.0",
+    "installer_version": "1.2.0",
     "dependency_lock": "dependency-lock.json",
     "ready_evidence": "READY.json",
-    "required_before_production_execution": true,
+    "purpose": "locked repositories, OMP, credentials, public provider smoke, fault injection, and explicit T1-OMP fallback",
+    "required_before_t1_codex_external_roles": true,
     "skill_files_alone_are_sufficient": false
+  },
+  "source_authority": {
+    "file": "source.dj",
+    "sole_semantic_authority": true,
+    "controlled_chinese_is_authoritative": false,
+    "conflict_resolution": "original source wins; unresolved core ambiguity requires a named human decision"
   },
   "default_routing": {
     "enabled": true,
     "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
-    "condition": "the user requests translation without naming another strategy",
-    "explicit_overrides": ["C", "M", "M2", "user-defined workflow"],
+    "selected_skill": "mpi-strategy-t1-codex",
+    "selected_workflow": "t1_codex_quality",
+    "missing_selected_skill": "block and report installation requirement; never silently downgrade",
+    "explicit_overrides": ["T1-OMP", "C", "M", "M2", "user-defined workflow"],
     "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
   },
-  "adoption_evidence": {
-    "decision": "The user reported that human adjudication selected C+ as the best version and requested it be frozen as production strategy T1.",
-    "named_human_reviewer_recorded": false,
-    "scope": "workflow baseline selection; not blanket approval of future translations"
+  "workflow_modes": {
+    "t1_codex_quality": {
+      "rank": 1,
+      "production_default": true,
+      "skill": "mpi-strategy-t1-codex",
+      "english_owner": "current Codex task configured as GPT-5.6-Sol/high",
+      "provider_runtime": "locked OMP for Flash/high and fresh Pro/max only"
+    },
+    "t1_omp_rollback": {
+      "rank": 2,
+      "production_default": false,
+      "skill": "mpi-strategy-t1",
+      "activation": "explicit request, T1-Codex role unavailability, failed production gate, or bounded blinded comparison",
+      "automatic_prose_merging_allowed": false
+    },
+    "t1_1_2_semantic_restructuring": {
+      "production_default": false,
+      "activation": "explicit historical validation or isolated experiment",
+      "may_combine_with_default": false
+    },
+    "t1_2_human_quality_pretranslation": {
+      "production_default": false,
+      "activation": "explicit isolated experiment with named hash-bound human artifact"
+    },
+    "t1_2_ai_scale_pretranslation": {
+      "production_default": false,
+      "activation": "explicit isolated experiment plus pretranslation readiness and comparison evidence"
+    }
   },
-  "model_roles": {
+  "base_runtime_model_roles": {
     "source_analysis": {
       "model": "deepseek-v4-flash",
       "reasoning_effort": "high",
-      "reads": "frozen Chinese only"
+      "default_t1_codex_use": true
     },
     "translation_and_self_review": {
       "model": "gpt-5.6-sol",
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "default_t1_codex_use": false,
+      "use": "explicit T1-OMP rollback and public runtime smoke only"
     },
-    "bilingual_review_round_1": {
+    "bilingual_review": {
       "model": "deepseek-v4-pro",
-      "reasoning_effort": "max"
-    },
-    "review_application": {
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high"
-    },
-    "bilingual_review_round_2": {
-      "model": "deepseek-v4-pro",
-      "reasoning_effort": "max"
-    },
-    "title_audit": {
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high"
-    },
-    "concision_and_chinese_recheck": {
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high"
+      "reasoning_effort": "max",
+      "default_t1_codex_use": true
     }
   },
-  "required_gates": [
-    "t1_installer_ready_true",
-    "frozen_source_and_metadata",
-    "audited_terminology_and_fixed_expressions",
-    "audited_authoritative_web_terminology_verification_when_triggered",
-    "complete_source_only_analysis",
-    "full_translation_and_self_review",
-    "independent_bilingual_review_round_1",
-    "translator_adjudication_round_1",
-    "independent_bilingual_review_round_2",
-    "translator_adjudication_round_2",
-    "independent_title_and_heading_audit",
-    "independent_concision_and_full_chinese_recheck",
-    "deterministic_content_qa",
-    "docx_text_and_visual_qa_when_applicable",
-    "final_manifest"
-  ],
-  "network_terminology_policy": {
-    "trigger": "internal no-result, credible source conflict, or substantive uncertainty",
-    "receipt": "external-lookup-receipts.jsonl",
-    "privacy": "query the smallest public expression; explicit consent is required before transmitting private passage context",
-    "unresolved_core_term": "human_choice or blocked; never silently freeze",
-    "missing_receipt": "blocks affected term freeze and T1 completion"
+  "t1_1_2_default_adoption": {
+    "adopted_into_t1_codex": [
+      "source-hash-bound risk registration",
+      "high-risk-only Chinese clarification and English structure planning",
+      "fresh Pro/max Chinese-only challenge",
+      "constraint-to-final-target coverage",
+      "fresh post-concision bidirectional semantic regression"
+    ],
+    "kept_experimental": [
+      "mandatory full-document Sol semantic restructuring",
+      "full-document controlled-Chinese rewriting",
+      "controlled Chinese as semantic authority",
+      "quality claims based on rewrite count, shorter output, or aggregate model score"
+    ]
   },
-  "validation_baseline": {
-    "project": "pure-land-five-elements-m3-vs-cplus-20260822/C-plus",
-    "source_sha256": "4f655d8d6fd0bb3e2d6eb89e339f632ae5938e77390e191110fe5c30bce85e23",
-    "target_sha256": "1ce51560ffeb0d80b75a5310fdd411ef374324a9be3d26a2fca1053943d68ea3",
-    "sol_high_score": 95,
-    "deepseek_v4_pro_max_score": 94,
-    "critical_or_major_blockers": 0,
-    "deterministic_qa": "pass",
-    "docx_qa": "pass",
-    "visual_qa": "pass"
+  "lossless_omp_execution": {
+    "profile": "single-response-no-tools-v1",
+    "default_t1_codex_scope": "Flash/high and fresh Pro/max stages only",
+    "required_properties": [
+      "one complete assistant artifact per existing stage or bounded segment",
+      "no saved OMP session",
+      "no OMP tools",
+      "frozen input hash binding",
+      "refuse existing output",
+      "fail closed on input mutation, empty output, invalid schema, or incomplete coverage",
+      "reuse only exact hash-bound validated artifacts",
+      "retry only the failed segment",
+      "count receipt-backed model invocations rather than OMP events",
+      "leave unavailable token counts unknown"
+    ],
+    "forbidden_optimizations": [
+      "model substitution",
+      "reasoning effort reduction",
+      "independent review combination",
+      "coverage reduction",
+      "quality gate removal",
+      "title or concision gate removal",
+      "post-concision regression removal",
+      "human approval removal"
+    ]
+  },
+  "scoring_policy": {
+    "primary_judges": "blinded human bilingual Buddhist/Dharma reviewers",
+    "model_judges": "diagnostic only",
+    "diagnostic_only": ["aggregate scores", "backtranslation", "finding counts", "output length", "mechanical QA"],
+    "dimensions": ["accuracy", "roles and reference", "logic and scope", "Buddhist terminology", "teacher voice", "naturalness and concision", "title and headings", "publication-review usefulness"]
+  },
+  "release_validation": {
+    "selected_default_status": "locked candidate",
+    "required_genres": ["Dharma talk", "written article", "quotation-dense Buddhist text"],
+    "comparison": "same frozen source, terminology, review gates, and anonymous human adjudication against T1-OMP rollback",
+    "pass_rule": "T1-Codex wins or ties every genre, adds no unresolved critical or major defect, and shows no recurring Chinese-understanding failure",
+    "current_status": "pending",
+    "release_ready_allowed_before_pass": false
+  },
+  "required_gates": [
+    "base_t1_installer_ready_true",
+    "independent_t1_codex_skill_manifest",
+    "frozen_source_project_and_terminology",
+    "complete_source_only_analysis",
+    "high_risk_bridge_and_challenge",
+    "full_codex_translation_and_self_review",
+    "two_fresh_pro_bilingual_reviews_and_codex_adjudication",
+    "independent_title_audit",
+    "independent_concision_and_full_original_chinese_recheck",
+    "fresh_post_concision_bidirectional_semantic_regression",
+    "deterministic_docx_and_visual_qa",
+    "final_manifest",
+    "named_human_release_gate"
+  ],
+  "legacy_compatibility": {
+    "t1_0_1_omp": "explicit rollback remains executable",
+    "t1_1_1_semantic_bridge": "read-only validation remains available",
+    "t1_1_2_semantic_restructuring": "isolated experimental runner remains available",
+    "t1_2_pretranslation": "human_quality and ai_scale runners remain available only by explicit selection",
+    "legacy_artifact_is_default_production": false
   },
   "completion_statuses": [
-    "T1 incomplete",
-    "T1 blocked",
+    "T1-Codex incomplete",
+    "T1-Codex blocked",
+    "T1-OMP rollback AI reviewed draft",
     "AI reviewed draft",
     "human approved",
     "release-ready"

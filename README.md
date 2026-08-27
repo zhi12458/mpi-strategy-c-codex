@@ -1,4 +1,4 @@
-# mpi-strategy-m-codex
+# MPI Strategy Skills for Codex
 
 Audited installer and Codex skill for MPI M Strategy Chinese-English Buddhist
 translation. M 1.0 fixes the model roles as V4 Flash source analysis,
@@ -29,19 +29,23 @@ python skills/mpi-strategy-m/scripts/strategy_m.py doctor
 See `INSTALL_PROMPT.zh-CN.md`, `CUSTOMER_PROMPTS.zh-CN.md`, and
 `M-vs-C-vs-A.zh-CN.md`.
 
-## MPI T1 production skill
+## MPI T1-Codex production skill
 
-The T1.0.1 production skill is stored at `skills/mpi-strategy-t1/`. T1 is the
-default for MPI Chinese-English Buddhist books, articles, and documents when
-the user does not name another strategy. It is the human-adopted production
-name for the validated C+ workflow and is not an alias for M, M2, or historical
-C. Its source-only analysis, Sol High translation, two independent Pro reviews,
-title audit, concision recheck, terminology web-verification gate, QA, and human
-release boundary are frozen in the skill's production lock and manifest.
+The selected default for ordinary MPI Chinese-English Buddhist books, articles,
+and documents is stored at `skills/mpi-strategy-t1-codex/`. Current Codex owns
+drafting and English editing; locked Flash/high performs source analysis and
+high-risk bridge generation, while fresh Pro/max sessions independently
+challenge the bridge, run two bilingual reviews, and perform post-concision
+semantic regression. `source.dj` remains authoritative and every final target
+still requires named Buddhist/Dharma human approval.
 
-T1 also ships a separately versioned installer and readiness gate. It checks a
-pinned OMP release, a user-confirmed Personal OpenAI workspace, a T1-specific
-operating-system DeepSeek credential, exact MPI/toolkit compatibility-fork
-commits, repository doctors, disposable fault injection, public three-model
-smoke tests, and public mechanical/DOCX QA. Installing the skill directory by
-itself is not production readiness. See `INSTALL_PROMPT-T1.zh-CN.md`.
+The existing `skills/mpi-strategy-t1/` package remains the locked provider
+runtime, explicit T1-OMP rollback, installer, and historical T1.0/T1.1/T1.2
+compatibility layer. Full-document controlled-Chinese pretranslation remains an
+explicit experiment rather than a silent production default.
+
+The T1-Codex 1.1.0 candidate is selected in the production lock but remains
+`release_ready: false` until fixed public smoke and same-input human validation
+across a Dharma talk, written article, and quotation-dense Buddhist text pass.
+See `INSTALL_PROMPT-T1-CODEX.zh-CN.md`. The earlier stable T1-OMP installer
+prompt remains in `INSTALL_PROMPT-T1.zh-CN.md` for rollback installations.

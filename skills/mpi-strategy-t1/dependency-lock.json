@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "strategy_id": "T1",
-  "workflow_version": "1.0.1",
-  "installer_version": "1.0.0",
-  "release_ready": true,
-  "release_status": "verified_compatibility_forks",
+  "workflow_version": "1.2.0",
+  "installer_version": "1.2.0",
+  "release_ready": false,
+  "release_status": "compatibility_runtime_candidate_with_t1_codex_default_router_pending_validation",
   "managed_root_env": "MPI_STRATEGY_T1_ROOT",
   "mpi_translations": {
     "origin": "https://github.com/zhi12458/mpi-translations.git",
@@ -50,11 +50,22 @@
     "official_origin": "https://github.com/can1357/oh-my-pi",
     "credential_store": "~/.omp/agent/agent.db",
     "openai_provider": "openai-codex",
-    "personal_workspace_confirmation_required": true
+    "personal_workspace_confirmation_required": true,
+    "lossless_execution_policy": {
+      "name": "single-response-no-tools-v1",
+      "required_flags": ["-p", "--no-session", "--no-tools", "--hide-thinking"],
+      "model_role_change_allowed": false,
+      "reasoning_effort_change_allowed": false,
+      "workflow_stage_combining_allowed": false,
+      "quality_gate_reduction_allowed": false,
+      "exact_validated_artifact_reuse_allowed": true,
+      "omp_event_count_is_model_call_evidence": false
+    }
   },
   "python": {
     "minimum_version": "3.11",
-    "packages": ["keyring>=25,<27"]
+    "packages": ["keyring>=25,<27"],
+    "pilot_packages": ["PyYAML>=6,<7"]
   },
   "system_dependencies": {
     "required_commands": ["git", "pandoc", "omp"],
@@ -78,7 +89,9 @@
       "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "selector": "openai-codex/gpt-5.6-sol",
-      "reasoning_effort": "high"
+      "reasoning_effort": "high",
+      "production_default": false,
+      "use": "explicit T1-OMP rollback and public runtime smoke only"
     },
     "bilingual_review": {
       "provider": "deepseek",
@@ -112,8 +125,12 @@
   "default_routing": {
     "enabled": true,
     "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
+    "selected_skill": "mpi-strategy-t1-codex",
+    "selected_workflow": "t1_codex_quality",
     "explicit_overrides": ["C", "M", "M2", "user-defined workflow"],
-    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
+    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"],
+    "missing_selected_skill": "block and report; do not silently downgrade",
+    "t1_omp_fallback_requires_explicit_selection": true
   },
   "validation_baseline": {
     "project": "pure-land-five-elements-m3-vs-cplus-20260822/C-plus",
@@ -122,6 +139,21 @@
     "sol_high_score": 95,
     "deepseek_v4_pro_max_score": 94,
     "critical_or_major_blockers": 0
+  },
+  "track_policy": {
+    "quality_mainline": "T1-Codex 1.1.0",
+    "production_skill": "mpi-strategy-t1-codex",
+    "english_owner": "current Codex task configured as GPT-5.6-Sol/high",
+    "provider_runtime": "T1-OMP for Flash/high and Pro/max roles only",
+    "rollback_baseline": "T1-OMP 1.0.1",
+    "full_pretranslation_tracks": ["human_quality", "ai_scale"],
+    "full_pretranslation_default": false,
+    "source_authority": "source.dj",
+    "ai_scale_required_gates": ["pretranslation_contract_tests", "three_genre_human_validation"],
+    "legacy_semantic_restructuring_required_gates": ["semantic_restructuring_contract_tests"],
+    "adopted_t1_1_2_controls": ["high_risk_bridge", "fresh_chinese_challenge", "constraint_coverage", "post_concision_bidirectional_regression"],
+    "human_gate": "every final target remains an AI reviewed draft until a named Buddhist/Dharma human approves its exact hash",
+    "required_validation_genres": ["Dharma talk", "written article", "quotation-dense Buddhist text"]
   },
   "compatibility_policy": {
     "official_upstreams_unchanged": true,

@@ -1,4 +1,8 @@
-# MPI T1.0.1 Codex 安装提示词
+# MPI T1-OMP 1.0.1 稳定回滚安装提示词
+
+这是旧的稳定 T1-OMP 运行时安装提示词。普通新翻译已经转向独立
+`mpi-strategy-t1-codex` Skill；只有明确需要 T1-OMP 回滚、对照或基础运行时
+时使用本提示词。
 
 将下面整段交给 Codex。用户必须亲自完成系统管理员确认、OpenAI 浏览器登录、
 Personal 工作区选择和 DeepSeek Key 的本地隐藏输入。
