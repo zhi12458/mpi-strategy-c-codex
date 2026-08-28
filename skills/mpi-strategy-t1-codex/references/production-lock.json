@@ -28,6 +28,13 @@
     "explicit_overrides": ["T1-OMP", "C", "M", "M2", "user-defined workflow"],
     "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
   },
+  "openai_workspace_policy": {
+    "allowed": ["Personal", "ChatGPT Business"],
+    "legacy_name": "ChatGPT Team",
+    "selection": "the installer displays the redacted OMP usage summaries and the user explicitly confirms PERSONAL or BUSINESS; TEAM is accepted and normalized to BUSINESS",
+    "verification": "the selected local account configuration must expose the locked model catalog and pass fixed public smoke",
+    "privacy": "store only the declared workspace kind and hashes of redacted evidence; never store email, account ID, workspace label, OAuth token, password, or verification code"
+  },
   "workflow_modes": {
     "t1_codex_quality": {
       "production_default": true,

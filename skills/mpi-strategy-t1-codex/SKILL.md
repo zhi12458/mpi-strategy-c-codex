@@ -39,6 +39,10 @@ fixed expression is substantively uncertain, read
 - The Codex task must be configured as GPT-5.6-Sol/high and its actual task
   settings recorded. Do not silently substitute another model or effort while
   retaining the production label.
+- Installation accepts an explicitly selected Personal or ChatGPT Business
+  workspace. `TEAM` is accepted only as the former Business name. Require the
+  selected account configuration to pass the locked model catalog and public
+  smoke gates; never store workspace identifiers or credentials in the Skill.
 - Two fresh Pro/max bilingual reviews remain blind to source analysis, bridge
   artifacts, competing translations, and each other. Codex adjudicates every
   finding against the original Chinese and records its disposition.

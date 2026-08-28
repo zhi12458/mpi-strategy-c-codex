@@ -69,6 +69,7 @@ def verify_manifest(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "references/workflow.md",
         "references/installation.md",
         "references/readiness.md",
+        "scripts/confirm_workspace.py",
         "scripts/validate_package.py",
     }
     if not required.issubset(listed):
@@ -130,6 +131,36 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
     require(
         production.get("source_authority", {}).get("bridge_is_authoritative") is False,
         "semantic bridge must not be authoritative",
+    )
+
+    workspace = dependency.get("openai_workspace_policy", {})
+    require(
+        workspace.get("allowed_workspace_kinds") == ["personal", "business"],
+        "Personal and Business workspace support is not locked",
+    )
+    require(
+        workspace.get("accepted_confirmation_tokens")
+        == ["PERSONAL", "BUSINESS", "TEAM"],
+        "workspace confirmation tokens are not locked",
+    )
+    require(
+        workspace.get("team_normalizes_to") == "business",
+        "the legacy Team name is not normalized to Business",
+    )
+    require(
+        workspace.get("interactive_confirmation_script")
+        == "scripts/confirm_workspace.py",
+        "workspace confirmation script is not locked",
+    )
+    require(
+        workspace.get("workspace_identifiers_recorded") is False
+        and workspace.get("credentials_recorded") is False,
+        "workspace confirmation privacy policy is unsafe",
+    )
+    production_workspace = production.get("openai_workspace_policy", {})
+    require(
+        production_workspace.get("allowed") == ["Personal", "ChatGPT Business"],
+        "production lock does not allow Personal and Business",
     )
 
     modes = production.get("workflow_modes", {})

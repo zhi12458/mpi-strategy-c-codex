@@ -2,11 +2,11 @@
   "schema_version": 1,
   "strategy_id": "T1-CODEX",
   "workflow_version": "1.1.0",
-  "installer_version": "1.0.0",
+  "installer_version": "1.0.1",
   "release_ready": false,
   "release_status": "production_default_selected_pending_public_smoke_and_multi_genre_validation",
   "source_repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
-  "candidate_ref": "t1-codex-v1.1.0-candidate.1",
+  "candidate_ref": "t1-codex-v1.1.0-candidate.2",
   "base_runtime": {
     "strategy_id": "T1",
     "repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
@@ -69,8 +69,20 @@
     "required_commands": ["git", "python3", "pandoc", "omp"],
     "docx_renderer_candidates": ["libreoffice", "soffice"]
   },
+  "openai_workspace_policy": {
+    "allowed_workspace_kinds": ["personal", "business"],
+    "accepted_confirmation_tokens": ["PERSONAL", "BUSINESS", "TEAM"],
+    "team_normalizes_to": "business",
+    "interactive_confirmation_script": "scripts/confirm_workspace.py",
+    "base_runtime_compatibility_filename": "personal-workspace-confirmation.json",
+    "selected_workspace_model_catalog_required": true,
+    "selected_workspace_public_smoke_required": true,
+    "workspace_identifiers_recorded": false,
+    "credentials_recorded": false
+  },
   "required_gates": [
     "skill_manifest",
+    "personal_or_business_workspace_confirmation",
     "base_t1_ready_true",
     "omp_exact_version",
     "flash_high_public_smoke",

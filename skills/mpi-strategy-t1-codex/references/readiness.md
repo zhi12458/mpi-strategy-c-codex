@@ -24,8 +24,9 @@ A local, non-repository `T1_CODEX_READY.json` may say `ready: true` only when:
 - the Skill manifest and candidate ref match;
 - the stable base T1 `READY.json` is `ready: true` and its manifest matches;
 - OMP is exactly the locked version;
-- Personal-workspace confirmation and the DeepSeek OS-vault credential are
-  valid without exposing identifiers or secrets;
+- an explicitly selected Personal or ChatGPT Business workspace confirmation
+  and the DeepSeek OS-vault credential are valid without exposing identifiers
+  or secrets; `TEAM` is accepted only as the former name for Business;
 - fixed public Flash/high and Pro/max smoke calls pass;
 - the current Codex task is verifiably GPT-5.6-Sol/high;
 - role-policy and bridge/regression contract tests pass;

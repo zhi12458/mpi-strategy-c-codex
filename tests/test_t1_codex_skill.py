@@ -11,6 +11,7 @@ import pytest
 ROOT = Path(__file__).parents[1]
 SKILL = ROOT / "skills" / "mpi-strategy-t1-codex"
 SCRIPT = SKILL / "scripts" / "validate_package.py"
+WORKSPACE_SCRIPT = SKILL / "scripts" / "confirm_workspace.py"
 
 
 def load_validator():
@@ -22,6 +23,19 @@ def load_validator():
 
 
 validator = load_validator()
+
+
+def load_workspace_confirmation():
+    spec = importlib.util.spec_from_file_location(
+        "t1_codex_confirm_workspace", WORKSPACE_SCRIPT
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+workspace_confirmation = load_workspace_confirmation()
 
 
 def test_t1_codex_package_manifest_and_policy_pass():
@@ -39,6 +53,7 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
     )
     assert dependency["strategy_id"] == "T1-CODEX"
     assert dependency["workflow_version"] == "1.1.0"
+    assert dependency["installer_version"] == "1.0.1"
     assert dependency["base_runtime"]["stable_commit"] == (
         "af795df625eca95ab138094bd25172266007f24f"
     )
@@ -56,6 +71,69 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
     assert production["model_roles"]["post_concision_semantic_regression"][
         "reasoning_effort"
     ] == "max"
+
+
+def test_t1_codex_allows_personal_and_business_workspace_confirmations():
+    dependency = json.loads((SKILL / "dependency-lock.json").read_text(encoding="utf-8"))
+    policy = dependency["openai_workspace_policy"]
+    assert policy["allowed_workspace_kinds"] == ["personal", "business"]
+    assert policy["accepted_confirmation_tokens"] == ["PERSONAL", "BUSINESS", "TEAM"]
+    assert policy["team_normalizes_to"] == "business"
+    assert policy["workspace_identifiers_recorded"] is False
+    assert policy["credentials_recorded"] is False
+
+
+@pytest.mark.parametrize(
+    ("token", "expected_kind", "team_alias"),
+    (("PERSONAL", "personal", False), ("BUSINESS", "business", False), ("TEAM", "business", True)),
+)
+def test_workspace_confirmation_normalizes_supported_tokens(
+    token, expected_kind, team_alias
+):
+    usage = b'{"reports":[]}'
+    reports = [
+        {
+            "provider": "openai-codex",
+            "metadata": {"allowed": True, "planType": "redacted", "orgName": "redacted"},
+        }
+    ]
+    record = workspace_confirmation.build_confirmation(usage, reports, 1, token)
+    assert record["confirmed"] is True
+    assert record["provider"] == "openai-codex"
+    assert record["workspace_kind"] == expected_kind
+    assert record["team_alias_normalized_to_business"] is team_alias
+    assert record["email_recorded"] is False
+    assert record["account_id_recorded"] is False
+    assert record["workspace_label_recorded"] is False
+    assert record["token_recorded"] is False
+
+
+def test_workspace_confirmation_rejects_unknown_kind_and_account_number():
+    usage = b'{"reports":[]}'
+    reports = [
+        {"provider": "openai-codex", "metadata": {"allowed": True}}
+    ]
+    with pytest.raises(
+        workspace_confirmation.WorkspaceConfirmationError,
+        match="PERSONAL or BUSINESS",
+    ):
+        workspace_confirmation.build_confirmation(usage, reports, 1, "ENTERPRISE")
+    with pytest.raises(
+        workspace_confirmation.WorkspaceConfirmationError,
+        match="out of range",
+    ):
+        workspace_confirmation.build_confirmation(usage, reports, 2, "PERSONAL")
+
+
+def test_workspace_confirmation_filters_to_enabled_openai_codex_reports():
+    payload = {
+        "reports": [
+            {"provider": "openai-codex", "metadata": {"allowed": True}},
+            {"provider": "openai-codex", "metadata": {"allowed": False}},
+            {"provider": "other", "metadata": {"allowed": True}},
+        ]
+    }
+    assert len(workspace_confirmation.enabled_reports(payload)) == 1
 
 
 def test_t1_codex_keeps_full_pretranslation_experimental_and_omp_as_rollback():
@@ -87,6 +165,17 @@ def test_t1_codex_release_remains_blocked_until_three_genre_validation():
         "written article",
         "quotation-dense Buddhist text",
     ]
+
+
+def test_t1_codex_install_prompt_supports_personal_and_business_without_secrets():
+    prompt = (ROOT / "INSTALL_PROMPT-T1-CODEX.zh-CN.md").read_text(encoding="utf-8")
+    assert "https://github.com/zhi12458/mpi-strategy-c-codex.git" in prompt
+    assert "t1-codex-v1.1.0-candidate.2" in prompt
+    assert "python scripts/confirm_workspace.py" in prompt
+    assert "PERSONAL" in prompt
+    assert "BUSINESS" in prompt
+    assert "旧称 TEAM" in prompt
+    assert "不能让我把密码、验证码、Key 或 token 发到对话中" in prompt
 
 
 def test_manifest_detects_a_modified_skill_file(tmp_path):

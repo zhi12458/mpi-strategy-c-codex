@@ -8,7 +8,7 @@ repository doctors, fault injection, and Flash/Pro provider calls.
 
 - Repository: `https://github.com/zhi12458/mpi-strategy-c-codex.git`
 - T1-Codex path: `skills/mpi-strategy-t1-codex`
-- Candidate ref: `t1-codex-v1.1.0-candidate.1`
+- Candidate ref: `t1-codex-v1.1.0-candidate.2`
 - Stable base-runtime path: `skills/mpi-strategy-t1`
 - Stable base-runtime ref: `t1-v1.0.1-installer-1.0.0`
 - Stable base-runtime commit: `af795df625eca95ab138094bd25172266007f24f`
@@ -23,23 +23,39 @@ program in `production-lock.json` passes.
 2. Inspect existing `mpi-strategy-t1` and `mpi-strategy-t1-codex` directories.
    Never overwrite an existing installation without reporting its version,
    manifest, readiness, and differences.
-3. Install the stable base runtime from its fixed ref. Run its documented
-   manifest, dependency, OAuth Personal-workspace, masked DeepSeek credential,
-   fault-injection, public smoke, and doctor gates. Never paste credentials into
-   chat or command arguments.
+3. Install the stable base runtime files from their fixed ref, but do not run
+   its Personal-only confirmation helper. The immutable base tag predates
+   Business-workspace support.
 4. Install `skills/mpi-strategy-t1-codex` from the fixed candidate ref.
-5. Run:
+5. Run the base runtime's `login-openai`, then run this Skill's interactive
+   workspace confirmation:
+
+   ```sh
+   python scripts/confirm_workspace.py
+   ```
+
+   Select the enabled redacted account summary and type `PERSONAL` for a
+   Personal workspace or `BUSINESS` for ChatGPT Business. `TEAM` is accepted as
+   the former product name and normalized to Business. The compatibility record
+   intentionally uses the legacy base-runtime filename; it stores no email,
+   account ID, workspace label, token, password, or verification code.
+6. Return to the base runtime and complete its masked DeepSeek credential,
+   manifest, dependency, fault-injection, fixed public smoke, and doctor gates.
+   The selected account configuration must expose the locked model catalog and
+   pass the public smoke. Never paste credentials into chat or command
+   arguments.
+7. In the T1-Codex Skill directory, run:
 
    ```sh
    python scripts/validate_package.py
    ```
 
-6. Confirm the Codex task is configured as GPT-5.6-Sol with high reasoning.
+8. Confirm the Codex task is configured as GPT-5.6-Sol with high reasoning.
    This task setting is separate from the OMP OAuth account.
-7. Run only fixed public Flash/high and Pro/max markers when the user explicitly
+9. Run only fixed public Flash/high and Pro/max markers when the user explicitly
    authorizes the small quota use. Never send a manuscript as installation
    smoke.
-8. Follow [readiness.md](readiness.md). Do not mark the candidate production-
+10. Follow [readiness.md](readiness.md). Do not mark the candidate production-
    ready merely because the files copied successfully.
 
 Ordinary MPI Buddhist translation routes to this Skill. Explicit T1-OMP, C, M,
