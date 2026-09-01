@@ -4,6 +4,7 @@ import base64
 import importlib.util
 import json
 import shutil
+import subprocess
 import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -199,6 +200,19 @@ def test_runtime_installer_rejects_incomplete_ready_evidence():
                 },
             }
         )
+
+
+def test_runtime_installer_normalizes_real_omp_version_output():
+    completed = subprocess.CompletedProcess(
+        args=("omp", "--version"),
+        returncode=0,
+        stdout=b"omp/17.3.4\n",
+        stderr=b"",
+    )
+
+    assert runtime_installer.omp_version(
+        "omp", runner=lambda *_args, **_kwargs: completed
+    ) == "17.3.4"
 
 
 def test_runtime_installer_reports_missing_dependencies(monkeypatch):

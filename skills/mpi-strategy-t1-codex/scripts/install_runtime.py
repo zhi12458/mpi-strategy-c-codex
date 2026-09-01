@@ -131,7 +131,10 @@ def omp_version(executable: str, runner: Callable[..., subprocess.CompletedProce
     )
     if completed.returncode:
         raise RuntimeInstallError("OMP version check failed")
-    return completed.stdout.decode("utf-8", errors="replace").strip()
+    reported = completed.stdout.decode("utf-8", errors="replace").strip()
+    if reported.startswith("omp/"):
+        return reported.removeprefix("omp/")
+    return reported
 
 
 def run_interactive(command: tuple[str, ...], cwd: Path) -> None:
