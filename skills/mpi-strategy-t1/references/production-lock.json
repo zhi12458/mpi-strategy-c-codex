@@ -4,7 +4,7 @@
   "workflow_version": "1.2.0",
   "production_name": "T1 compatibility router",
   "selected_production_skill": "mpi-strategy-t1-codex",
-  "selected_production_workflow": "T1-Codex 1.1.0",
+  "selected_production_workflow": "T1-Codex 1.2.0",
   "production_default_selected": true,
   "release_ready": false,
   "derived_from": "human-adopted C+ workflow, same-source T1-OMP/T1-Codex evidence, and repeated human preference for the T1-Codex final English",

@@ -41,10 +41,19 @@ still requires named Buddhist/Dharma human approval.
 
 The existing `skills/mpi-strategy-t1/` package remains the locked provider
 runtime, explicit T1-OMP rollback, installer, and historical T1.0/T1.1/T1.2
-compatibility layer. Full-document controlled-Chinese pretranslation remains an
-explicit experiment rather than a silent production default.
+compatibility layer. T1-Codex 1.2.0 adds bounded, source-bound Chinese semantic
+segmentation before English drafting; full-document stylistic controlled-
+Chinese pretranslation remains an explicit experiment rather than a silent
+production default.
 
-The T1-Codex 1.1.0 candidate is selected in the production lock but remains
+T1-Codex 1.2.0 also includes a resumable post-translation native-English
+editing route for an existing bilingual manuscript. It freezes and reuses only
+exact-hash upstream evidence, does not rerun the complete translation or two
+bilingual reviews by default, uses isolated general-English and Dharma-English
+readers, routes substantive changes to commissioner choice, and produces a
+clean alternating Chinese/English Word file after full semantic and visual QA.
+
+The T1-Codex 1.2.0 candidate is selected in the production lock but remains
 `release_ready: false` until fixed public smoke and same-input human validation
 across a Dharma talk, written article, and quotation-dense Buddhist text pass.
 See `INSTALL_PROMPT-T1-CODEX.zh-CN.md`. The earlier stable T1-OMP installer

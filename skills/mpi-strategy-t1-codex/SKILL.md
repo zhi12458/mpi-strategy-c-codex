@@ -1,15 +1,21 @@
 ---
 name: mpi-strategy-t1-codex
-description: Default MPI production workflow for Chinese-to-English Buddhist books, articles, and documents. Use automatically for ordinary MPI Buddhist document translation and when the user requests T1-Codex. Current Codex owns drafting and English editing; locked Flash/Pro roles provide independent source and review gates. Explicit C, M, M2, media-specific, or non-Buddhist requests override it.
+description: Default MPI production and post-translation editing workflow for Chinese-to-English Buddhist books, articles, and documents. Use automatically for ordinary MPI Buddhist document translation, existing bilingual manuscripts that need T1-Codex native-English editing, and explicit T1-Codex requests. Current Codex owns drafting and English editing; locked Flash/Pro roles provide independent source and review gates. Explicit C, M, M2, media-specific, or non-Buddhist requests override it.
 ---
 
 # MPI T1-Codex Production Strategy
 
-T1-Codex 1.1.0 is the selected quality-first production default. It preserves
+T1-Codex 1.2.0 is the selected quality-first production default. It preserves
 the human-adopted C+ quality chain and incorporates only the risk-reducing parts
 of the T1.1 line: source-bound high-risk semantic clarification, independent
 Chinese challenge, exact constraint coverage, and post-concision bidirectional
-semantic regression.
+semantic regression. It also adds a full-document Chinese semantic-segmentation
+stage between source analysis and English drafting so that clauses, subjects,
+references, and logical relations are explicit before translation.
+It also provides a resumable post-translation entry for an existing bilingual
+manuscript. That entry reuses exact-hash upstream evidence and does not repeat
+the complete translation or bilingual-review chain merely to perform native-
+English editing.
 
 Current Codex, configured as GPT-5.6-Sol with high reasoning, owns the full
 English draft, review adjudication, title audit, concision, and complete Chinese
@@ -23,6 +29,18 @@ or readiness work, read [references/installation.md](references/installation.md)
 and [references/readiness.md](references/readiness.md). When terminology or a
 fixed expression is substantively uncertain, read
 [references/network-terminology-verification.md](references/network-terminology-verification.md).
+Read
+[references/english-only-reader-gate.md](references/english-only-reader-gate.md)
+before preparing, running, adjudicating, or validating either English-only
+reader round.
+Read
+[references/chinese-semantic-segmentation.md](references/chinese-semantic-segmentation.md)
+before creating, reviewing, validating, or delivering the Chinese semantic-
+segmentation artifacts.
+Read
+[references/post-translation-editing.md](references/post-translation-editing.md)
+when editing an existing Chinese-English manuscript or running the required
+post-translation native-English stage of a new T1-Codex document.
 
 ## Non-negotiable boundaries
 
@@ -36,6 +54,21 @@ fixed expression is substantively uncertain, read
   seeing an English draft. Disagreement, low confidence, doctrine, titles,
   quotations, names, and other core ambiguity remain human-review items or
   block drafting.
+- After source analysis and bridge decisions, Codex/Sol-high must produce
+  complete source-bound Chinese semantic segmentation before drafting English.
+  It may split overloaded sentences, repeat a uniquely recoverable referent,
+  make an implicit subject explicit, and expose an already-supported logical
+  relation. It must not add a proposition, agency, causality, obligation,
+  evaluation, or person shift.
+- Adding `我们` is allowed only when the original Chinese already includes the
+  speaker and audience in that proposition. If that inclusion is not uniquely
+  supported, retain the ambiguity, mark the item `review_required`, and require
+  a recorded commissioner decision before English drafting.
+- A fresh Pro/max Chinese-only session must review every changed segmentation
+  record against `source.dj`. The translator receives both files, resolves any
+  conflict in favor of `source.dj`, and may not draft from the segmentation
+  alone. Retain and deliver the human-readable segmentation result alongside
+  the final translation.
 - The Codex task must be configured as GPT-5.6-Sol/high and its actual task
   settings recorded. Do not silently substitute another model or effort while
   retaining the production label.
@@ -43,21 +76,60 @@ fixed expression is substantively uncertain, read
   workspace. `TEAM` is accepted only as the former Business name. Require the
   selected account configuration to pass the locked model catalog and public
   smoke gates; never store workspace identifiers or credentials in the Skill.
+- Installation must run `python scripts/install_runtime.py` interactively.
+  Static package validation is never runtime readiness. If OMP 17.3.4, the
+  masked DeepSeek credential, public smoke, base doctor, or base `READY=true`
+  is missing, report `BLOCKED`; never claim that T1-Codex is Codex-only.
 - Two fresh Pro/max bilingual reviews remain blind to source analysis, bridge
   artifacts, competing translations, and each other. Codex adjudicates every
   finding against the original Chinese and records its disposition.
 - Titles and headings receive an independent accuracy pass. Concision is a
   separate full-document pass followed by a complete original-Chinese recheck
   and a fresh Pro/max bidirectional semantic-regression gate.
+- After that regression, two mutually isolated English-only readers---a
+  general nonfiction editor and an English Buddhist/Dharma editor---must read
+  the target as original English. They receive only a readable English-only
+  manuscript generated from and hash-bound to the current target; raw Djot with
+  Chinese anchors is forbidden. They remain blind to Chinese, terminology, old
+  translations, bilingual material, prior feedback, the translator context,
+  and each other.
+- Codex checks every reader suggestion against the complete original Chinese.
+  Meaning-neutral grammar, punctuation, collocation, repetition, passive-voice,
+  and uniquely recoverable referent repairs may be applied after that check.
+  Changes affecting doctrine, meaning or degree, terminology, voice, metaphor,
+  numbers, person relation, information coverage, sentence or paragraph
+  structure, quotation wording, or explanatory Chinese-cultural translation
+  require commissioner selection from documented options and fidelity
+  tradeoffs before application.
+- Human comments must be assessed individually, distilled into source-supported
+  reusable editing principles, and followed by a full-document search for the
+  same problem. Human preference never overrides the Chinese or pre-approves a
+  future document.
+- After approved reader-driven edits, rerun a complete Chinese review,
+  full-document bidirectional semantic regression, and both English-only
+  readers in fresh isolated sessions. Both final readers must report zero
+  blockers and zero unresolved actionable findings, with zero unapproved
+  omission, addition, or sensitive change.
 - Full-document controlled-Chinese rewriting, T1.1.2 Sol restructuring, and the
   T1.2 human/AI pretranslation tracks are optional isolated experiments. They
   never enter the default workflow without explicit user selection and their
-  own comparison evidence.
+  own comparison evidence. The mandatory segmentation stage is narrower: it
+  clarifies information structure but does not stylistically rewrite, shorten,
+  modernize, or replace the Chinese source.
 - Regenerate `bilingual.dj` from the final source and target. Run deterministic,
   DOCX text, accessibility, and page-by-page visual QA when applicable.
+- In the post-translation delivery profile, the reader-facing Word file contains
+  only alternating untouched Chinese and final English paragraphs, including
+  titles and headings. Keep incoming English, semantic notes, feedback,
+  decisions, comments, tracked changes, and other internal material outside it.
+- An existing-translation entry does not silently claim the missing upstream
+  T1-Codex stages. If the baseline lacks exact-hash production receipts, label
+  the result `T1-Codex post-edit AI-reviewed draft` and disclose the missing
+  evidence rather than rerunning it without instruction.
 - A completed run is an `AI reviewed draft`. A named Buddhist/Dharma human must
   approve the exact final target hash before `human approved` or release-ready
-  status is allowed.
+  status is allowed. Missing or stale English-only reader evidence is
+  `T1-Codex blocked`, not a completed draft.
 
 ## Fallback and transition
 

@@ -1,6 +1,6 @@
 interface:
   display_name: "MPI T1-Codex 生产翻译"
-  short_description: "Codex-led MPI Buddhist translation with independent review"
-  default_prompt: "Use $mpi-strategy-t1-codex to translate this Chinese Buddhist document with the locked T1-Codex production workflow."
+  short_description: "Codex-led Buddhist translation and post-editing with independent review"
+  default_prompt: "Use $mpi-strategy-t1-codex for this Chinese Buddhist translation or existing bilingual manuscript, selecting the full production or post-translation editing route as appropriate."
 policy:
   allow_implicit_invocation: true

@@ -141,7 +141,7 @@
     "critical_or_major_blockers": 0
   },
   "track_policy": {
-    "quality_mainline": "T1-Codex 1.1.0",
+    "quality_mainline": "T1-Codex 1.2.0",
     "production_skill": "mpi-strategy-t1-codex",
     "english_owner": "current Codex task configured as GPT-5.6-Sol/high",
     "provider_runtime": "T1-OMP for Flash/high and Pro/max roles only",

@@ -84,7 +84,7 @@ def test_t1_lock_routes_default_to_codex_and_keeps_runtime_separate_from_m():
         "ai_scale_required_gates"
     ]
     assert lock["track_policy"]["rollback_baseline"] == "T1-OMP 1.0.1"
-    assert lock["track_policy"]["quality_mainline"] == "T1-Codex 1.1.0"
+    assert lock["track_policy"]["quality_mainline"] == "T1-Codex 1.2.0"
     assert lock["track_policy"]["production_skill"] == "mpi-strategy-t1-codex"
     assert lock["track_policy"]["english_owner"] == (
         "current Codex task configured as GPT-5.6-Sol/high"

@@ -10,16 +10,34 @@ coverage and these locked invariants:
 
 - `source.dj` is the sole semantic authority;
 - T1-Codex is the selected production default;
-- Codex owns drafting and English editing;
+- Codex owns bounded Chinese semantic segmentation, drafting, and English
+  editing;
 - OMP owns only locked Flash/high and fresh Pro/max roles;
 - bridge generation is high-risk-only and writes no English;
+- Chinese semantic segmentation covers every nonblank source line, remains
+  non-authoritative, obeys the guarded `我们` rule, receives a fresh Pro/max
+  Chinese-only review, and is retained as internal evidence or delivered
+  separately when requested;
 - two bilingual reviews and post-concision regression remain independent;
-- full-document pretranslation is not a silent default;
+- the mandatory general-English and Dharma-English readers are mutually
+  isolated and English-only in both initial and final rounds;
+- reader changes require source-based adjudication, commissioner choice for
+  sensitive categories, and a complete Chinese/regression rerun;
+- the resumable post-translation route preserves the incoming target, does not
+  rerun translation or bilingual reviews by default, distinguishes low-risk
+  repairs from commissioner-sensitive changes, and cannot inherit full
+  T1-Codex status from incomplete upstream evidence;
+- human feedback is assessed item by item and followed by a full-document
+  analogue scan, while project terminology decisions remain project-scoped;
+- the clean alternating bilingual Word profile excludes all internal editing
+  evidence and requires pair, font, DOCX, and page-by-page visual checks;
+- full-document stylistic pretranslation is not a silent default;
 - T1-OMP remains an explicit rollback, not an automatic merge source.
 
 ## Local runtime readiness
 
-A local, non-repository `T1_CODEX_READY.json` may say `ready: true` only when:
+Run `python scripts/install_runtime.py` interactively. A local, non-repository
+`T1_CODEX_RUNTIME_READY.json` may say `runtime_ready: true` only when:
 
 - the Skill manifest and candidate ref match;
 - the stable base T1 `READY.json` is `ready: true` and its manifest matches;
@@ -29,8 +47,15 @@ A local, non-repository `T1_CODEX_READY.json` may say `ready: true` only when:
   or secrets; `TEAM` is accepted only as the former name for Business;
 - fixed public Flash/high and Pro/max smoke calls pass;
 - the current Codex task is verifiably GPT-5.6-Sol/high;
-- role-policy and bridge/regression contract tests pass;
+- role-policy, bridge, semantic-segmentation, and regression contract tests
+  pass;
 - no private text was used for installation smoke.
+
+`validate_package.py` proves only package integrity and role-policy consistency.
+It cannot establish runtime readiness. If the runtime report is absent, any
+required field is false, or the base doctor does not return `ready: true`, the
+installation status is `BLOCKED`. Do not silently replace Flash/Pro stages with
+Codex or describe such a run as T1-Codex.
 
 Keep local readiness under a T1-Codex-specific managed root. Never commit READY,
 credentials, account identifiers, smoke transcripts containing secrets, or
@@ -54,6 +79,16 @@ the genre validation artifacts.
 ## Document completion
 
 Each document has its own source, term, model, review, QA, final-target, and
-human-approval hashes. A ready installation can produce only an `AI reviewed
-draft`. A named Buddhist/Dharma reviewer must approve that exact final target
-before human-approved or release-ready status is allowed.
+human-approval hashes. Run
+`python scripts/validate_semantic_segmentation.py <project> --stage review`
+before English drafting and `python scripts/validate_reader_gate.py <project>`
+before claiming a full new document complete. For an existing-translation
+retrofit, also run
+`python scripts/validate_post_translation_editing.py <project>`. A ready
+installation can produce only an `AI reviewed draft`, and only when both final
+English-only readers have zero blockers or actionable findings and the post-
+reader full Chinese review and bidirectional regression show no unapproved
+omission, addition, or sensitive change. An incomplete upstream baseline may
+claim only `T1-Codex post-edit AI-reviewed draft`. A named Buddhist/Dharma
+reviewer must approve the exact final target before human-approved or release-
+ready status is allowed.

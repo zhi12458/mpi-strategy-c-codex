@@ -1,18 +1,19 @@
 {
   "schema_version": 1,
   "strategy_id": "T1-CODEX",
-  "workflow_version": "1.1.0",
-  "installer_version": "1.0.1",
+  "workflow_version": "1.2.0",
+  "installer_version": "1.0.2",
   "release_ready": false,
   "release_status": "production_default_selected_pending_public_smoke_and_multi_genre_validation",
   "source_repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
-  "candidate_ref": "t1-codex-v1.1.0-candidate.2",
+  "candidate_ref": "t1-codex-v1.2.0-candidate.1",
   "base_runtime": {
     "strategy_id": "T1",
     "repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
     "skill_path": "skills/mpi-strategy-t1",
     "stable_ref": "t1-v1.0.1-installer-1.0.0",
     "stable_commit": "af795df625eca95ab138094bd25172266007f24f",
+    "stable_manifest_sha256": "765bec51ed736a6e505e0e1bf6ef2f5a9dd7ce3eb4db7e2cc99dd29cb3ebd47e",
     "purpose": "locked OMP, credential, repository, fault-injection, Flash/high, and Pro/max runtime",
     "base_ready_required": true
   },
@@ -24,12 +25,14 @@
       "source_analysis",
       "semantic_bridge_generation",
       "semantic_bridge_challenge",
+      "chinese_semantic_segmentation_review",
       "bilingual_review_round_1",
       "bilingual_review_round_2",
       "post_concision_semantic_regression"
     ],
     "codex_owned_roles_forbidden": [
       "translation_and_self_review",
+      "chinese_semantic_segmentation",
       "review_application",
       "title_audit",
       "concision_and_chinese_recheck"
@@ -63,6 +66,43 @@
       "reasoning_effort": "high",
       "execution_surface": "current Codex task",
       "task_setting_verification_required": true
+    },
+    "post_translation_chinese_semantic_map": {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "scope": "complete Chinese source without consulting existing English",
+      "writes_english": false
+    },
+    "chinese_semantic_segmentation": {
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "scope": "every nonblank source line",
+      "writes_english": false
+    },
+    "chinese_semantic_segmentation_review": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "selector": "deepseek/deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "fresh locked OMP runtime",
+      "reads_english": false
+    },
+    "english_only_readers": {
+      "roles": ["general_nonfiction_editor", "english_dharma_editor"],
+      "model_or_provider": "record actual identity; no silent translator-role reuse",
+      "execution_surface": "four distinct fresh isolated English-only sessions",
+      "visible_input_count": 1,
+      "visible_input": "readable English-only manuscript generated from and hash-bound to current target only",
+      "reader_visible_manuscript_retained": true,
+      "reader_visible_manuscript_chinese_forbidden": true,
+      "raw_djot_with_chinese_anchors_forbidden": true,
+      "source_side_inputs_forbidden": true,
+      "prior_feedback_forbidden": true,
+      "mutual_isolation_required": true
     }
   },
   "system_dependencies": {
@@ -80,6 +120,15 @@
     "workspace_identifiers_recorded": false,
     "credentials_recorded": false
   },
+  "runtime_installer": {
+    "script": "scripts/install_runtime.py",
+    "interactive": true,
+    "fail_closed": true,
+    "deepseek_masked_prompt_required_when_missing": true,
+    "base_ready_true_required": true,
+    "static_package_validation_is_runtime_readiness": false,
+    "success_report": "T1_CODEX_RUNTIME_READY.json"
+  },
   "required_gates": [
     "skill_manifest",
     "personal_or_business_workspace_confirmation",
@@ -90,7 +139,12 @@
     "codex_gpt_5_6_sol_high_task_settings",
     "role_policy_validation",
     "high_risk_bridge_contract_validation",
+    "chinese_semantic_segmentation_contract_validation",
+    "document_semantic_segmentation_receipt_validation",
     "post_concision_regression_contract_validation",
+    "english_only_reader_gate_contract_validation",
+    "document_reader_gate_receipt_validation",
+    "post_translation_editing_policy_validation",
     "three_genre_human_validation",
     "document_specific_human_release_gate"
   ],

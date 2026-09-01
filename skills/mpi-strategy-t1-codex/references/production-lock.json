@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "strategy": "MPI-T1-CODEX",
-  "workflow_version": "1.1.0",
+  "workflow_version": "1.2.0",
   "production_name": "T1-Codex",
   "production_default_selected": true,
   "release_ready": false,
   "adopted_on": "2026-08-28",
   "derived_from": "human-adopted C+ quality workflow plus repeated human preference for the T1-Codex final English over the comparable T1-OMP final English",
-  "change_summary": "Select current Codex as the production English owner while retaining locked Flash/high source analysis, high-risk bridge generation, fresh Pro/max Chinese challenge, two bilingual reviews, title and concision gates, post-concision semantic regression, and target-specific human approval.",
+  "change_summary": "Add mandatory source-bound Chinese semantic segmentation before drafting and a resumable post-translation native-English editing route for existing bilingual manuscripts. The post-edit route reuses exact-hash upstream evidence, does not rerun complete translation or bilingual review by default, adds expert-derived oral-talk style and human-feedback learning gates, expands commissioner-sensitive changes, and locks a clean alternating bilingual Word delivery profile; retain the independent English-only reader gates.",
   "selection_evidence": {
     "prior_model_only_result": "A frozen same-source diagnostic comparison preferred T1-OMP by a small margin; it explicitly was not named human adjudication.",
     "new_human_result": "The user reported on 2026-08-28 that the 2026-08-27 human reviews consistently found T1-Codex slightly better than T1-OMP.",
@@ -18,6 +18,7 @@
     "file": "source.dj",
     "sole_semantic_authority": true,
     "bridge_is_authoritative": false,
+    "semantic_segmentation_is_authoritative": false,
     "controlled_chinese_is_authoritative": false,
     "conflict_resolution": "source.dj wins; unresolved core ambiguity requires a named human decision or blocks drafting"
   },
@@ -46,6 +47,15 @@
       "activation": "explicit user request, Codex-role unavailability, production-gate failure, or bounded blinded comparison",
       "automatic_prose_merging_allowed": false
     },
+    "post_translation_native_editing": {
+      "production_default_after_completed_translation": true,
+      "activation": "a complete Chinese source and existing English translation are in scope, or a new T1-Codex run reaches its post-translation stage",
+      "full_translation_rerun_default": false,
+      "bilingual_review_rerun_default": false,
+      "exact_hash_upstream_evidence_reuse_only": true,
+      "full_t1_completion_inheritance": "allowed only when every reused upstream receipt matches the exact source and baseline target hashes",
+      "status_without_complete_upstream_evidence": "T1-Codex post-edit AI-reviewed draft"
+    },
     "full_pretranslation_experiments": {
       "production_default": false,
       "modes": ["T1.1.2 Sol semantic restructuring", "T1.2 human_quality", "T1.2 ai_scale"],
@@ -73,11 +83,40 @@
       "execution_surface": "fresh locked OMP session",
       "reads_english": false
     },
+    "semantic_decisions": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "source_evidence_required": true
+    },
     "translation_and_self_review": {
       "model": "gpt-5.6-sol",
       "reasoning_effort": "high",
       "execution_surface": "current Codex task",
       "competing_english_allowed": false
+    },
+    "post_translation_chinese_semantic_map": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "scope": "complete Chinese source without consulting the existing English",
+      "writes_english": false,
+      "source_authority_replacement_allowed": false
+    },
+    "chinese_semantic_segmentation": {
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "execution_surface": "current Codex task",
+      "scope": "every nonblank source line",
+      "writes_english": false,
+      "source_authority_replacement_allowed": false
+    },
+    "chinese_semantic_segmentation_review": {
+      "model": "deepseek-v4-pro",
+      "reasoning_effort": "max",
+      "execution_surface": "fresh locked OMP session",
+      "reads_english": false,
+      "scope": "every changed segmentation record"
     },
     "bilingual_review_round_1": {
       "model": "deepseek-v4-pro",
@@ -116,6 +155,105 @@
       "reasoning_effort": "max",
       "execution_surface": "fresh locked OMP session",
       "checks": "both Chinese-to-English coverage and English-to-Chinese support for every high-risk constraint"
+    },
+    "english_only_general_reader": {
+      "reader_role": "general nonfiction editor",
+      "execution_surface": "fresh isolated English-only session",
+      "visible_inputs": ["readable English-only manuscript generated from and hash-bound to current target"],
+      "raw_djot_with_chinese_anchors_forbidden": true,
+      "forbidden_inputs": ["Chinese", "term map", "old translations", "bilingual files", "semantic artifacts", "translator context", "prior feedback", "other reader output"]
+    },
+    "english_only_dharma_reader": {
+      "reader_role": "English Buddhist/Dharma editor",
+      "execution_surface": "different fresh isolated English-only session",
+      "visible_inputs": ["readable English-only manuscript generated from and hash-bound to current target"],
+      "raw_djot_with_chinese_anchors_forbidden": true,
+      "forbidden_inputs": ["Chinese", "term map", "old translations", "bilingual files", "semantic artifacts", "translator context", "prior feedback", "other reader output"]
+    }
+  },
+  "english_only_reader_gate": {
+    "mandatory": true,
+    "runs_after": "fresh_post_concision_bidirectional_semantic_regression",
+    "initial_and_final_roles": ["general nonfiction editor", "English Buddhist/Dharma editor"],
+    "reader_visible_manuscripts_retained": true,
+    "reader_visible_manuscripts_must_contain_no_chinese": true,
+    "reader_visible_manuscripts_bound_to_canonical_target_hash": true,
+    "reader_checks": ["translation-shaped prose", "collocation", "nominalization", "repetition", "rhythm", "teacher voice", "Dharma terminology readability", "paragraph density", "natural spoken opening", "read-aloud sentence length", "unnecessary passive voice", "unnecessary Buddhist coloration in ordinary expressions"],
+    "translator_must_recheck_every_finding_against_full_chinese": true,
+    "source_evidence_must_be_literal_span_of_hash_bound_source": true,
+    "low_risk_direct_edit_categories": ["grammar", "punctuation", "collocation", "accidental_repetition", "unnecessary_passive", "uniquely_recoverable_referent", "meaning_neutral_simplification", "ordinary_english_polish"],
+    "commissioner_approval_categories": ["doctrine", "meaning_or_degree", "terminology", "author_voice_or_tone", "metaphor", "numbers", "person_relation_or_ambiguous_referent", "information_addition_or_deletion", "sentence_split_or_merge", "paragraph_structure", "quotation_wording", "culture_specific_explanatory_translation"],
+    "options_and_fidelity_tradeoffs_required_before_sensitive_change": true,
+    "sensitive_proposal_required_fields": ["current_english", "proposed_english", "reason", "fidelity_effect", "source_evidence", "commissioner_decision"],
+    "every_finding_risk_classified": true,
+    "post_edit_full_chinese_recheck_required": true,
+    "post_edit_full_document_bidirectional_regression_required": true,
+    "fresh_final_reader_sessions_required": true,
+    "completion_rule": "both final readers have zero blockers and zero unresolved actionable findings, and there is no unapproved omission, addition, or sensitive change"
+  },
+  "post_translation_editing": {
+    "reference": "references/post-translation-editing.md",
+    "source_authority": "source.dj",
+    "baseline_artifact": "post-edit-baseline.json",
+    "source_only_semantic_map": "reuse exact-hash validated segmentation or create post-edit-chinese-semantic-map.jsonl",
+    "source_only_semantic_map_artifact_sha256_required": true,
+    "semantic_map_reader_facing_delivery_allowed": false,
+    "upstream_status_inheritance": {
+      "boolean_declaration_sufficient": false,
+      "required_stages": ["source_analysis", "semantic_bridge_generation", "semantic_bridge_challenge", "semantic_decisions", "chinese_semantic_segmentation", "chinese_semantic_segmentation_review", "translation_and_self_review", "bilingual_review_round_1", "review_application_round_1", "bilingual_review_round_2", "review_application_round_2", "title_audit", "concision_and_chinese_recheck", "post_concision_semantic_regression", "deterministic_content_qa"],
+      "receipt_required_fields": ["stage", "artifact", "artifact_sha256", "source_sha256", "baseline_target_sha256", "scope", "status", "role_or_tool_identity_matches_recorded_configuration", "reused_without_rerun"],
+      "inner_completion_receipt_required": true,
+      "inner_receipt_source_target_scope_status_and_identity_validated": true,
+      "model_stage_identity_compared_with_production_lock": true,
+      "locks_loaded_from_dependency_and_production_files": true
+    },
+    "source_only_semantic_map_validation": {
+      "visible_input_count": 1,
+      "visible_input_hash_is_source_hash": true,
+      "new_map_covers_every_nonblank_source_line_in_order": true,
+      "record_source_text_and_line_hash_exact": true,
+      "proposition_evidence_is_literal_source_line_span": true,
+      "reused_segmentation_runs_full_draft_and_review_validator": true,
+      "safe_status_requires_zero_ambiguities": true,
+      "ambiguity_requires_named_hash_bound_commissioner_decision": true,
+      "unsupported_we_requires_person_scope_evidence_and_commissioner_approval": true
+    },
+    "human_feedback_learning": {
+      "artifact": "human-feedback-learning.json",
+      "every_item_assessed": true,
+      "local_preference_distinguished_from_reusable_principle": true,
+      "full_document_analogue_scan_required": true,
+      "human_feedback_overrides_source": false,
+      "zero_item_receipt_required_when_no_feedback": true
+    },
+    "oral_dharma_talk_style": {
+      "genre_triggered": true,
+      "plain_concrete_verbs": true,
+      "academic_nominalization_avoided": true,
+      "natural_spoken_opening": true,
+      "one_breath_sentence_check": true,
+      "sentence_split_requires_commissioner": true,
+      "unsupported_we_forbidden": true,
+      "unnecessary_dharma_insertion_forbidden": true
+    },
+    "terminology_scope": {
+      "same_author_or_institution_approved_usage_checked": true,
+      "tradition_specific_variants_compared_when_material": true,
+      "project_decisions_promoted_to_global_termbase_automatically": false
+    },
+    "clean_alternating_bilingual_docx": {
+      "order": "one untouched Chinese paragraph followed immediately by its final English paragraph",
+      "titles_toc_and_headings_alternate": true,
+      "incoming_english_excluded": true,
+      "semantic_notes_feedback_decisions_and_process_excluded": true,
+      "comments_tracked_changes_and_placeholders_forbidden": true,
+      "actual_pair_count_and_order_verified": true,
+      "actual_docx_zip_content_types_xml_and_text_verified": true,
+      "actual_docx_paragraphs_derived_from_source_and_target": true,
+      "hash_bound_rendered_page_index_required": true,
+      "render_receipt_bound_to_final_docx_hash_and_page_index": true,
+      "chinese_and_sanskrit_pali_font_coverage_required": true,
+      "docx_zip_text_and_page_visual_qa_required": true
     }
   },
   "t1_1_2_adoption_policy": {
@@ -124,7 +262,9 @@
       "high-risk-only Chinese semantic clarification and English structure planning",
       "fresh Pro/max Chinese-only challenge",
       "constraint-to-final-target coverage",
-      "fresh post-concision bidirectional semantic regression"
+      "fresh post-concision bidirectional semantic regression",
+      "bounded full-document Chinese semantic segmentation with source authority preserved",
+      "fresh Pro/max Chinese-only review of every changed segmentation record"
     ],
     "not_default": [
       "full-document controlled-Chinese rewriting",
@@ -133,6 +273,44 @@
       "quality claims based on rewrite count, shorter output, or aggregate model score"
     ]
   },
+  "chinese_semantic_segmentation": {
+    "mandatory": true,
+    "runs_after": "resolved_or_explicitly_provisional_semantic_decisions",
+    "runs_before": "full_codex_translation_and_self_review",
+    "source_authority": "source.dj",
+    "required_scope": "every nonblank source line including structural lines",
+    "permitted_operations": [
+      "split at existing semantic boundaries",
+      "make a uniquely recoverable subject or referent explicit",
+      "repeat a source-supported noun to remove ambiguity",
+      "expose an already encoded logical relation",
+      "leave already-clear Chinese unchanged"
+    ],
+    "prohibited_operations": [
+      "add a proposition or example",
+      "add agency causality obligation or evaluation",
+      "strengthen condition modality degree or certainty",
+      "change statement question quotation doctrine or person scope",
+      "style-driven full Chinese rewriting",
+      "replace source.dj"
+    ],
+    "added_we_rule": {
+      "subject": "我们",
+      "allowed_only_when_source_includes_speaker_and_audience": true,
+      "engagement_alone_is_source_evidence": false,
+      "ambiguous_case_status": "review_required",
+      "commissioner_decision_required_before_application": true
+    },
+    "independent_pro_review_required": true,
+    "translation_receives_source_and_segmentation_together": true,
+    "conflict_resolution": "source.dj wins",
+    "required_artifacts": [
+      "chinese-semantic-segmentation.jsonl",
+      "chinese-semantic-segmentation.dj",
+      "chinese-semantic-segmentation-review.jsonl"
+    ],
+    "human_readable_report_delivered_when_requested": true
+  },
   "required_document_gates": [
     "frozen_source_project_and_terminology",
     "complete_source_only_analysis",
@@ -140,6 +318,10 @@
     "high_risk_bridge_only",
     "fresh_chinese_only_bridge_challenge",
     "resolved_or_explicitly_provisional_semantic_decisions",
+    "complete_source_bound_chinese_semantic_segmentation",
+    "fresh_pro_max_chinese_segmentation_review",
+    "resolved_subject_person_and_logic_decisions",
+    "semantic_segmentation_receipt_validation",
     "full_codex_translation_and_self_review",
     "complete_constraint_to_target_coverage",
     "fresh_bilingual_review_round_1",
@@ -149,8 +331,22 @@
     "independent_title_and_heading_audit",
     "independent_concision_and_full_original_chinese_recheck",
     "fresh_post_concision_bidirectional_semantic_regression",
+    "post_translation_baseline_and_reuse_freeze",
+    "source_only_post_edit_chinese_semantic_map",
+    "isolated_english_only_general_reader_initial",
+    "isolated_english_only_dharma_reader_initial",
+    "source_based_reader_finding_adjudication",
+    "reader_findings_low_risk_or_sensitive_classified",
+    "human_feedback_learning_and_full_document_analogue_scan",
+    "commissioner_approval_for_sensitive_reader_changes",
+    "post_reader_complete_original_chinese_recheck",
+    "post_reader_full_document_bidirectional_semantic_regression",
+    "isolated_english_only_general_reader_final_zero_blockers",
+    "isolated_english_only_dharma_reader_final_zero_blockers",
+    "zero_unapproved_omissions_additions_or_sensitive_changes",
     "deterministic_content_qa",
     "docx_text_accessibility_and_visual_qa_when_applicable",
+    "clean_alternating_bilingual_docx_internal_material_exclusion",
     "final_manifest",
     "named_human_release_gate"
   ],
@@ -164,6 +360,7 @@
   "completion_statuses": [
     "T1-Codex incomplete",
     "T1-Codex blocked",
+    "T1-Codex post-edit AI-reviewed draft",
     "AI reviewed draft",
     "human approved",
     "release-ready"
