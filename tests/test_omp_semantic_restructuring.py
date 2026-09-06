@@ -115,7 +115,7 @@ def test_semantic_restructuring_uses_four_real_files_validates_temp_and_binds_ha
     ]
     assert len(captured["messages"]) == 6
     assert captured["messages"][5].startswith(
-        f"@{tmp_path.resolve()}/.semantic-restructuring-contract."
+        f"@{tmp_path.resolve() / '.semantic-restructuring-contract.'}"
     )
     assert "source.dj is the sole authority" in captured["messages"][0]
     assert "do not perform or record a second doctrinal interpretation" in captured[
@@ -306,7 +306,7 @@ def test_explicit_accepted_decisions_is_passed_and_hashed_by_both_calls(
     accepted_argument = f"@{decisions.resolve()}"
     assert calls[0][-2] == accepted_argument
     assert calls[0][-1].startswith(
-        f"@{tmp_path.resolve()}/.semantic-restructuring-contract."
+        f"@{tmp_path.resolve() / '.semantic-restructuring-contract.'}"
     )
     assert calls[1][-1] == accepted_argument
     assert "accepted-decisions @file" in calls[0][0]

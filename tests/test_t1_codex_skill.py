@@ -287,7 +287,7 @@ def test_runtime_installer_runs_credential_smoke_and_doctor_gates(tmp_path, monk
     assert result["public_smoke_status"] == "PASS"
     assert result["candidate_ref"] == "t1-codex-v1.2.0-candidate.2"
     assert result["candidate_manifest_sha256"] == "candidate-manifest"
-    saved = json.loads((tmp_path / "T1_CODEX_RUNTIME_READY.json").read_text())
+    saved = json.loads((tmp_path / "T1_CODEX_RUNTIME_READY.json").read_text(encoding="utf-8"))
     assert saved["credentials_recorded"] is False
 
 
@@ -553,7 +553,7 @@ def test_semantic_segmentation_accepts_complete_draft_and_review(tmp_path):
 def test_semantic_segmentation_requires_confirmation_for_added_we(tmp_path):
     build_segmentation_fixture(tmp_path, subject="我们")
     record_path = tmp_path / "chinese-semantic-segmentation.jsonl"
-    records = [json.loads(line) for line in record_path.read_text().splitlines()]
+    records = [json.loads(line) for line in record_path.read_text(encoding="utf-8").splitlines()]
     records[0]["changes"][0]["human_confirmation_required"] = False
     records[0]["status"] = "safe"
     record_path.write_text(
@@ -582,7 +582,7 @@ def test_semantic_segmentation_rejects_line_or_blank_position_drift(tmp_path):
 def test_semantic_segmentation_rejects_unbound_source_evidence(tmp_path):
     build_segmentation_fixture(tmp_path)
     record_path = tmp_path / "chinese-semantic-segmentation.jsonl"
-    records = [json.loads(line) for line in record_path.read_text().splitlines()]
+    records = [json.loads(line) for line in record_path.read_text(encoding="utf-8").splitlines()]
     records[0]["changes"][0]["source_evidence"] = ["这段文字不在原文中"]
     record_path.write_text(
         "\n".join(json.dumps(record, ensure_ascii=False) for record in records) + "\n",
@@ -607,7 +607,7 @@ def test_semantic_segmentation_added_we_cannot_borrow_other_clause(tmp_path):
     )
     source_hash = segmentation_validator.sha256_file(tmp_path / "source.dj")
     record_path = tmp_path / "chinese-semantic-segmentation.jsonl"
-    records = [json.loads(line) for line in record_path.read_text().splitlines()]
+    records = [json.loads(line) for line in record_path.read_text(encoding="utf-8").splitlines()]
     records[0]["source_sha256"] = source_hash
     records[0]["source_text"] = source_text
     records[0]["source_line_sha256"] = segmentation_validator.sha256_text(source_text)

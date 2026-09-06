@@ -330,7 +330,7 @@ def test_locked_stage4_indexed_subject_is_reused_without_second_analysis(tmp_pat
     }
     artifact = semantic_bridge.hydrate_proposal(project, proposal)
     evidence = artifact["records"][0]["analysis_evidence"][0]
-    analysis = json.loads((project / semantic_bridge.ANALYSIS_NAME).read_text())
+    analysis = json.loads((project / semantic_bridge.ANALYSIS_NAME).read_text(encoding="utf-8"))
     assert evidence["source_analysis_value_sha256"] == semantic_bridge.canonical_hash(
         analysis["paragraphs"][1]["references_and_ellipsis"][0]
     )
@@ -427,13 +427,13 @@ def test_locked_contextual_subject_uses_unique_slot_and_valid_predicate_anchor(t
         evidence.pop("source_analysis_value_sha256")
     proposal = {"records": [proposal_record]}
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    original = json.loads(analysis_path.read_text())
+    original = json.loads(analysis_path.read_text(encoding="utf-8"))
 
     alias = copy.deepcopy(original)
     alias_ref = alias["paragraphs"][1]["references_and_ellipsis"][0]
     alias_ref["referent"] = "讲者"
     alias_ref["candidate_referents"] = ["修行者"]
-    analysis_path.write_text(json.dumps(alias, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(alias, ensure_ascii=False) + "\n", encoding="utf-8")
     write(project, semantic_bridge.hydrate_proposal(project, proposal))
     with pytest.raises(StrategyT1Error, match="uniquely authorize"):
         semantic_bridge.validate_project(project)
@@ -470,7 +470,7 @@ def test_locked_contextual_subject_uses_unique_slot_and_valid_predicate_anchor(t
     })
     mutations.append(conflicting_participant)
     for changed in mutations:
-        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n")
+        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n", encoding="utf-8")
         write(project, semantic_bridge.hydrate_proposal(project, proposal))
         with pytest.raises(StrategyT1Error, match="uniquely authorize"):
             semantic_bridge.validate_project(project)
@@ -478,12 +478,12 @@ def test_locked_contextual_subject_uses_unique_slot_and_valid_predicate_anchor(t
 def test_locked_and_legacy_source_analysis_records_cannot_mix(tmp_path):
     project = structured_project(tmp_path)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     analysis["paragraphs"][0] = {
         "paragraph_id": "L1",
         "semantic_roles_and_references": "修行者为当前行主语",
     }
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     with pytest.raises(StrategyT1Error, match="cannot mix"):
         semantic_bridge.project_context(project)
 
@@ -491,11 +491,11 @@ def test_locked_and_legacy_source_analysis_records_cannot_mix(tmp_path):
 def test_locked_structured_record_rejects_injected_legacy_evidence(tmp_path, field):
     project = structured_project(tmp_path)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     analysis["paragraphs"][5][field] = (
         "两项并列；第二项“慈悲”承前省略“要”，可在“慈悲”前补“要”"
     )
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     with pytest.raises(StrategyT1Error, match="legacy evidence cannot mix"):
         semantic_bridge.project_context(project)
 
@@ -508,12 +508,12 @@ def test_malformed_locked_signature_cannot_downgrade_to_legacy_mode(tmp_path):
     )
     project = structured_project(tmp_path)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     record = analysis["paragraphs"][2]
     for field in semantic_bridge.STRUCTURED_SIGNATURE_FIELDS:
         record[field] = {}
     record["logic_and_scope"] = "“勤修”为原因，“得乐”为因果结果"
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     with pytest.raises(
         StrategyT1Error,
         match="non_list|legacy_evidence_fields|cannot mix",
@@ -555,9 +555,9 @@ def test_locked_stage4_indexed_relation_projects_only_bound_implicit_logic(tmp_p
     write(project, artifact)
     assert semantic_bridge.validate_project(project)["status"] == "PASS"
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     analysis["paragraphs"][2]["relations"][0]["type"] = "coordination"
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     rejected = semantic_bridge.hydrate_proposal(project, proposal)
     write(project, rejected)
     with pytest.raises(StrategyT1Error, match="does not authorize"):
@@ -727,7 +727,7 @@ def test_locked_stage4_indexed_coreference_can_replace_only_unique_overt_form(tm
         semantic_bridge.validate_project(project)
     write(project, artifact)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     invalid_role = copy.deepcopy(analysis)
     invalid_role["paragraphs"][4]["references_and_ellipsis"][0]["role"] = "bogus"
     conflicting_reference = copy.deepcopy(analysis)
@@ -743,17 +743,17 @@ def test_locked_stage4_indexed_coreference_can_replace_only_unique_overt_form(tm
         "notes": "同一表层形式的冲突所指。",
     })
     for changed in (invalid_role, conflicting_reference):
-        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n")
+        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n", encoding="utf-8")
         rejected = semantic_bridge.hydrate_proposal(project, proposal)
         write(project, rejected)
         with pytest.raises(StrategyT1Error, match="does not uniquely authorize"):
             semantic_bridge.validate_project(project)
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     analysis["paragraphs"][4]["references_and_ellipsis"][0]["referent"] = "阿难"
     analysis["paragraphs"][4]["references_and_ellipsis"][0][
         "candidate_referents"
     ] = ["阿难"]
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     rejected = semantic_bridge.hydrate_proposal(project, proposal)
     write(project, rejected)
     with pytest.raises(StrategyT1Error, match="does not uniquely authorize"):
@@ -857,7 +857,7 @@ def test_locked_stage4_parallel_lexical_completion_defers_without_scope_field(tm
 def test_analysis_must_be_complete_ordered_and_fresh(tmp_path):
     project, artifact = project_fixture(tmp_path)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    original = json.loads(analysis_path.read_text())
+    original = json.loads(analysis_path.read_text(encoding="utf-8"))
     for mutate, message in (
         (lambda value: value["paragraphs"].pop(), "cover every nonblank"),
         (lambda value: value["paragraphs"].reverse(), "cover every nonblank"),
@@ -866,10 +866,10 @@ def test_analysis_must_be_complete_ordered_and_fresh(tmp_path):
     ):
         changed = copy.deepcopy(original)
         mutate(changed)
-        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n")
+        analysis_path.write_text(json.dumps(changed, ensure_ascii=False) + "\n", encoding="utf-8")
         with pytest.raises(StrategyT1Error, match=message):
             semantic_bridge.validate_project(project)
-    analysis_path.write_text(json.dumps(original, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(original, ensure_ascii=False) + "\n", encoding="utf-8")
     write(project, artifact)
 def test_analysis_without_paragraph_line_hash_uses_frozen_source_order(tmp_path):
     project, artifact = project_fixture(tmp_path)
@@ -880,10 +880,10 @@ def test_analysis_without_paragraph_line_hash_uses_frozen_source_order(tmp_path)
     for evidence in proposal_record["analysis_evidence"]:
         evidence.pop("source_analysis_value_sha256")
     path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(path.read_text())
+    analysis = json.loads(path.read_text(encoding="utf-8"))
     for paragraph in analysis["paragraphs"]:
         paragraph.pop("line_sha256")
-    path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     hydrated = semantic_bridge.hydrate_proposal(project, {"records": [proposal_record]})
     write(project, hydrated)
     report = semantic_bridge.validate_project(project)
@@ -895,16 +895,16 @@ def test_analysis_without_paragraph_line_hash_uses_frozen_source_order(tmp_path)
 def test_l1_and_l001_are_compatible_but_duplicates_are_not(tmp_path):
     project, _ = project_fixture(tmp_path)
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     analysis["paragraphs"][0]["paragraph_id"] = "L1"
     analysis["paragraphs"][1]["paragraph_id"] = "L3"
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     artifact = semantic_bridge.fixture_artifact(project)
     assert semantic_bridge.validate_project(project)["status"] == "PASS"
-    analysis = json.loads(analysis_path.read_text())
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     analysis["paragraphs"][1]["paragraph_id"] = "L003"
     analysis["paragraphs"][0]["paragraph_id"] = "L0003"
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     with pytest.raises(StrategyT1Error, match="duplicate|cover every"):
         semantic_bridge.validate_project(project)
     write(project, artifact)
@@ -1233,7 +1233,7 @@ def test_legacy_contextual_subject_uses_only_closed_complete_scalar(tmp_path):
         ],
     }
     analysis_path = project / semantic_bridge.ANALYSIS_NAME
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     proposal = {
         "records": [{
             "paragraph_id": "L2",
@@ -1271,7 +1271,7 @@ def test_legacy_contextual_subject_uses_only_closed_complete_scalar(tmp_path):
     proposal["records"][0]["analysis_evidence"][0]["exact_quote"] = analysis[
         "paragraphs"
     ][1]["semantic_roles_and_references"]
-    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n")
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False) + "\n", encoding="utf-8")
     write(project, semantic_bridge.hydrate_proposal(project, proposal))
     with pytest.raises(StrategyT1Error, match="authorization marker|closed affirmative"):
         semantic_bridge.validate_project(project)

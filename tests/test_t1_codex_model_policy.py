@@ -13,7 +13,7 @@ spec.loader.exec_module(m)
 locks = m.load_upstream_model_locks()
 source = "a" * 64
 target = "b" * 64
-matrix = json.loads((root / "dependency-lock.json").read_text())["codex_model_policy"]["allowed_model_efforts"]
+matrix = json.loads((root / "dependency-lock.json").read_text(encoding="utf-8"))["codex_model_policy"]["allowed_model_efforts"]
 
 def baseline(project, model, effort, mutation=None):
  receipts=[]
@@ -25,7 +25,7 @@ def baseline(project, model, effort, mutation=None):
   else:identity={'kind':'tool','tool_name':'fixture','tool_version':'1','command_or_config_sha256':'c'*64}
   artifact={'schema_version':1,'gate':'t1_codex_upstream_completion','stage':stage,'source_sha256':source,'target_sha256':target,'scope':'full_document','status':'PASS','complete':True,'execution_identity':identity}
   if mutation:mutation(stage,artifact)
-  p=project/(stage+'.json');p.write_text(json.dumps(artifact));receipts.append({'stage':stage,'artifact':p.name,'artifact_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'source_sha256':source,'baseline_target_sha256':target,'scope':'full_document','status':'PASS','role_or_tool_identity_matches_recorded_configuration':True,'reused_without_rerun':True})
+  p=project/(stage+'.json');p.write_text(json.dumps(artifact), encoding="utf-8");receipts.append({'stage':stage,'artifact':p.name,'artifact_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'source_sha256':source,'baseline_target_sha256':target,'scope':'full_document','status':'PASS','role_or_tool_identity_matches_recorded_configuration':True,'reused_without_rerun':True})
  return {'upstream_reuse_receipts':receipts}
 
 @pytest.mark.parametrize("model,effort", [(model, effort) for model, efforts in matrix.items() for effort in efforts])
