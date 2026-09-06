@@ -6,7 +6,7 @@
   "release_ready": false,
   "release_status": "production_default_selected_pending_public_smoke_and_multi_genre_validation",
   "source_repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
-  "candidate_ref": "t1-codex-v1.2.0-candidate.1",
+  "candidate_ref": "t1-codex-v1.2.0-candidate.2",
   "base_runtime": {
     "strategy_id": "T1",
     "repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
@@ -62,23 +62,23 @@
     },
     "codex_translation_and_editing": {
       "provider": "openai-codex",
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high",
+      "model": "runtime-selected-gpt-5.6-or-gpt-6",
+      "reasoning_effort": "runtime-supported",
       "execution_surface": "current Codex task",
       "task_setting_verification_required": true
     },
     "post_translation_chinese_semantic_map": {
       "provider": "openai-codex",
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high",
+      "model": "runtime-selected-gpt-5.6-or-gpt-6",
+      "reasoning_effort": "runtime-supported",
       "execution_surface": "current Codex task",
       "scope": "complete Chinese source without consulting existing English",
       "writes_english": false
     },
     "chinese_semantic_segmentation": {
       "provider": "openai-codex",
-      "model": "gpt-5.6-sol",
-      "reasoning_effort": "high",
+      "model": "runtime-selected-gpt-5.6-or-gpt-6",
+      "reasoning_effort": "runtime-supported",
       "execution_surface": "current Codex task",
       "scope": "every nonblank source line",
       "writes_english": false
@@ -136,7 +136,7 @@
     "omp_exact_version",
     "flash_high_public_smoke",
     "pro_max_public_smoke",
-    "codex_gpt_5_6_sol_high_task_settings",
+    "codex_supported_model_effort_task_settings",
     "role_policy_validation",
     "high_risk_bridge_contract_validation",
     "chinese_semantic_segmentation_contract_validation",
@@ -152,5 +152,49 @@
     "public_smoke_private_content_allowed": false,
     "private_provider_transmission_requires_explicit_consent": true,
     "credentials_in_chat_or_command_arguments_forbidden": true
+  },
+  "package_revision": "codex-model-flex-1",
+  "codex_model_policy": {
+    "allowed_model_efforts": {
+      "gpt-5.6-sol": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "gpt-5.6-terra": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "gpt-5.6-luna": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "gpt-6-astra": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ]
+    },
+    "selection": "Preserve the user-selected current Codex model and any reasoning effort supported by that execution surface. Do not force high or switch models.",
+    "actual_identity_required": true,
+    "runtime_availability_verification_required": true,
+    "scope": "Codex-owned roles only; independent Flash/Pro and base OMP locks are unchanged.",
+    "evidence": "OpenAI model pages plus locally advertised Codex model catalog, 2026-09-06. none is API-supported for GPT-5.6; ultra is a Codex-advertised level for Sol, Terra and Astra. Only use a level actually exposed by the chosen runtime."
   }
 }

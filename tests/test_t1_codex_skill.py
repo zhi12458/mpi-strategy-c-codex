@@ -119,8 +119,8 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
     )
     assert production["default_routing"]["selected_workflow"] == "t1_codex_quality"
     assert production["model_roles"]["translation_and_self_review"] == {
-        "model": "gpt-5.6-sol",
-        "reasoning_effort": "high",
+        "model": "runtime-selected-gpt-5.6-or-gpt-6",
+        "reasoning_effort": "runtime-supported",
         "execution_surface": "current Codex task",
         "competing_english_allowed": False,
     }
@@ -146,7 +146,7 @@ def test_t1_codex_allows_personal_and_business_workspace_confirmations():
 def test_t1_codex_runtime_installer_is_fail_closed():
     dependency = json.loads((SKILL / "dependency-lock.json").read_text(encoding="utf-8"))
     policy = dependency["runtime_installer"]
-    assert dependency["candidate_ref"] == "t1-codex-v1.2.0-candidate.1"
+    assert dependency["candidate_ref"] == "t1-codex-v1.2.0-candidate.2"
     assert policy["script"] == "scripts/install_runtime.py"
     assert policy["interactive"] is True
     assert policy["fail_closed"] is True
@@ -285,7 +285,7 @@ def test_runtime_installer_runs_credential_smoke_and_doctor_gates(tmp_path, monk
     assert result["runtime_ready"] is True
     assert result["deepseek_credential_present"] is True
     assert result["public_smoke_status"] == "PASS"
-    assert result["candidate_ref"] == "t1-codex-v1.2.0-candidate.1"
+    assert result["candidate_ref"] == "t1-codex-v1.2.0-candidate.2"
     assert result["candidate_manifest_sha256"] == "candidate-manifest"
     saved = json.loads((tmp_path / "T1_CODEX_RUNTIME_READY.json").read_text())
     assert saved["credentials_recorded"] is False
@@ -1187,8 +1187,8 @@ def test_post_translation_editing_accepts_hash_bound_complete_upstream_index(tmp
             execution_identity = {
                 "kind": "model",
                 "provider": lock["provider"],
-                "model": lock["model"],
-                "reasoning_effort": lock["reasoning_effort"],
+                "model": "gpt-6-astra" if "allowed_model_efforts" in lock else lock["model"],
+                "reasoning_effort": "high" if "allowed_model_efforts" in lock else lock["reasoning_effort"],
                 "role": stage,
                 "execution_surface": lock["execution_surface"],
                 "request_or_session_id": f"fixture-{stage}",
@@ -1472,7 +1472,7 @@ def test_post_translation_editing_rejects_reversed_docx_pair_order(tmp_path):
 def test_t1_codex_install_prompt_supports_personal_and_business_without_secrets():
     prompt = (ROOT / "INSTALL_PROMPT-T1-CODEX.zh-CN.md").read_text(encoding="utf-8")
     assert "https://github.com/zhi12458/mpi-strategy-c-codex.git" in prompt
-    assert "t1-codex-v1.2.0-candidate.1" in prompt
+    assert "t1-codex-v1.2.0-candidate.2" in prompt
     assert "python scripts/install_runtime.py" in prompt
     assert "PERSONAL" in prompt
     assert "BUSINESS" in prompt

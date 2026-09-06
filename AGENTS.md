@@ -21,8 +21,10 @@ High workflow may be documented for comparison but must not be reactivated as
 an implicit daily translation route.
 
 T1 is also a distinct strategy identity. Keep `mpi-strategy-t1` separate from
-M. T1 is the default for MPI Chinese-English Buddhist books, articles, and
-documents when the user does not name another strategy; explicit C, M, M2, or
-another user-defined workflow overrides it. T1 source files must match their
+M. T1-Codex is the selected default for ordinary MPI Chinese-English Buddhist
+books, articles, and documents. The base T1 package remains the provider runtime
+and explicit T1-OMP rollback; supporting materials use their separate workflow.
+Explicit C, M, M2, T1-OMP, or user-defined workflows override the default.
+T1 source files must match their
 `MANIFEST.sha256`; do not treat T1's workflow adoption as human approval of any
 future translation.

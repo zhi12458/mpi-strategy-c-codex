@@ -19,7 +19,8 @@ AI-reviewed draft` and state the missing upstream evidence.
   only material, delivery format, and named human decision points.
 - Record whether external source analysis and review are authorized. Private
   text requires explicit consent before first transmission.
-- Confirm that the Codex task is GPT-5.6-Sol with high reasoning. If the task
+- Confirm the selected GPT-5.6 or GPT-6 Codex model and reasoning level are
+  supported by the runtime; record actual values. If the task
   setting cannot be verified, stop the production label rather than guessing.
 
 ## 2. Source and project freeze
@@ -78,7 +79,7 @@ AI-reviewed draft` and state the missing upstream evidence.
 
 - Read and follow
   [chinese-semantic-segmentation.md](chinese-semantic-segmentation.md).
-- Codex/Sol-high reads the frozen original, complete source analysis, term
+- Codex reads the frozen original, complete source analysis, term
   evidence, and accepted bridge decisions. For every nonblank source line, it
   records the propositions, semantic roles, referents, modifier scope, logic,
   and protected constraints, then produces a clearer Chinese segmentation.
@@ -97,7 +98,7 @@ AI-reviewed draft` and state the missing upstream evidence.
 
 ## 8. Codex translation and self-review
 
-- The current GPT-5.6-Sol/high Codex task reads `source.dj`, metadata, term map,
+- The current Codex task reads `source.dj`, metadata, term map,
   source analysis, accepted bridge decisions, the approved Chinese semantic
   segmentation, and no competing English. `source.dj` wins any conflict; the
   segmentation may clarify structure but is not a replacement source.

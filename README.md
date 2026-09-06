@@ -53,6 +53,13 @@ bilingual reviews by default, uses isolated general-English and Dharma-English
 readers, routes substantive changes to commissioner choice, and produces a
 clean alternating Chinese/English Word file after full semantic and visual QA.
 
+T1-Codex 1.2.0 candidate.2 allows GPT-5.6 Sol/Terra/Luna and GPT-6 Astra
+for Codex-owned roles at any reasoning level supported by the selected runtime.
+It preserves the user's model/effort selection and records the actual identity;
+it does not force Sol/high. Model permission does not establish translation
+quality equivalence or waive independent review. Base OMP and Flash/Pro locks
+remain unchanged. The install prompt pins the candidate.2 tag.
+
 The T1-Codex 1.2.0 candidate is selected in the production lock but remains
 `release_ready: false` until fixed public smoke and same-input human validation
 across a Dharma talk, written article, and quotation-dense Buddhist text pass.

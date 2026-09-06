@@ -8,7 +8,7 @@ repository doctors, fault injection, and Flash/Pro provider calls.
 
 - Repository: `https://github.com/zhi12458/mpi-strategy-c-codex.git`
 - T1-Codex path: `skills/mpi-strategy-t1-codex`
-- Candidate ref: `t1-codex-v1.2.0-candidate.1`
+- Candidate ref: `t1-codex-v1.2.0-candidate.2`
 - Stable base-runtime path: `skills/mpi-strategy-t1`
 - Stable base-runtime ref: `t1-v1.0.1-installer-1.0.0`
 - Stable base-runtime commit: `af795df625eca95ab138094bd25172266007f24f`
@@ -22,9 +22,9 @@ program in `production-lock.json` passes.
 1. Read Codex's built-in `skill-installer` instructions.
 2. Inspect existing `mpi-strategy-t1` and `mpi-strategy-t1-codex` directories.
    Never overwrite an existing installation without reporting its version,
-   manifest, readiness, and differences. Back up and replace a candidate.2 or
-   static-only incomplete installation before running candidate.1; never carry
-   its readiness claim forward.
+   manifest, readiness, and differences. Back up the existing package before installing this candidate.2. Preserve
+   local differences and recheck readiness; never carry an old package
+   readiness claim forward.
 3. Install the stable base runtime files from their fixed ref, but do not run
    its Personal-only confirmation helper. The immutable base tag predates
    Business-workspace support.
@@ -54,7 +54,8 @@ program in `production-lock.json` passes.
 
    A passing static validator without a passing runtime installer means only
    that the files are intact; it is not an installed provider runtime.
-8. Confirm the Codex task is configured as GPT-5.6-Sol with high reasoning.
+8. Confirm the selected GPT-5.6 or GPT-6 model and reasoning level are supported
+   by the current Codex runtime, and record their actual values.
    This task setting is separate from the OMP OAuth account.
 9. Verify the runtime report contains exact OMP `17.3.4`,
    `deepseek_credential_present: true`, `base_ready: true`, and

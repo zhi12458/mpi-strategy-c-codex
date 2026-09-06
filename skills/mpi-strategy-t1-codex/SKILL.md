@@ -5,6 +5,9 @@ description: Default MPI production and post-translation editing workflow for Ch
 
 # MPI T1-Codex Production Strategy
 
+Package revision `codex-model-flex-1` (1.2.0 candidate.2) permits user-selected
+GPT-5.6/GPT-6 Codex roles. Workflow quality gates remain 1.2.0.
+
 T1-Codex 1.2.0 is the selected quality-first production default. It preserves
 the human-adopted C+ quality chain and incorporates only the risk-reducing parts
 of the T1.1 line: source-bound high-risk semantic clarification, independent
@@ -17,7 +20,7 @@ manuscript. That entry reuses exact-hash upstream evidence and does not repeat
 the complete translation or bilingual-review chain merely to perform native-
 English editing.
 
-Current Codex, configured as GPT-5.6-Sol with high reasoning, owns the full
+Current Codex, using GPT-5.6 or GPT-6 at a runtime-supported reasoning level, owns the full
 English draft, review adjudication, title audit, concision, and complete Chinese
 recheck. DeepSeek V4 Flash/high and fresh V4 Pro/max sessions remain independent
 checks. This is not a Codex-only workflow.
@@ -54,7 +57,7 @@ post-translation native-English stage of a new T1-Codex document.
   seeing an English draft. Disagreement, low confidence, doctrine, titles,
   quotations, names, and other core ambiguity remain human-review items or
   block drafting.
-- After source analysis and bridge decisions, Codex/Sol-high must produce
+- After source analysis and bridge decisions, Codex must produce
   complete source-bound Chinese semantic segmentation before drafting English.
   It may split overloaded sentences, repeat a uniquely recoverable referent,
   make an implicit subject explicit, and expose an already-supported logical
@@ -69,9 +72,10 @@ post-translation native-English stage of a new T1-Codex document.
   conflict in favor of `source.dj`, and may not draft from the segmentation
   alone. Retain and deliver the human-readable segmentation result alongside
   the final translation.
-- The Codex task must be configured as GPT-5.6-Sol/high and its actual task
-  settings recorded. Do not silently substitute another model or effort while
-  retaining the production label.
+- Use the user-selected GPT-5.6 or GPT-6 Codex model at any reasoning level
+  supported by that runtime; do not force Sol or high. Record the actual model,
+  effort, and session identity. Follow `codex_model_policy` in the production
+  lock; model permission does not replace document review or human approval.
 - Installation accepts an explicitly selected Personal or ChatGPT Business
   workspace. `TEAM` is accepted only as the former Business name. Require the
   selected account configuration to pass the locked model catalog and public

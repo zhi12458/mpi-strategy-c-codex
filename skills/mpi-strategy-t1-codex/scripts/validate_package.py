@@ -224,6 +224,15 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "post-translation editing can overstate incomplete upstream evidence",
     )
 
+    policy = production.get("codex_model_policy", {})
+    require(policy == dependency.get("codex_model_policy"), "Codex model policy drift")
+    require(policy.get("actual_identity_required") is True, "actual model identity required")
+    require(policy.get("runtime_availability_verification_required") is True, "runtime support verification required")
+    expected_efforts = {'gpt-5.6-sol': ['none', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'], 'gpt-5.6-terra': ['none', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'], 'gpt-5.6-luna': ['none', 'low', 'medium', 'high', 'xhigh', 'max'], 'gpt-6-astra': ['low', 'medium', 'high', 'xhigh', 'max', 'ultra']}
+    require(policy.get("allowed_model_efforts") == expected_efforts, "unsupported Codex model/effort policy")
+    owner = dependency.get("models", {}).get("codex_translation_and_editing", {})
+    require(owner.get("provider") == "openai-codex" and owner.get("model") == "runtime-selected-gpt-5.6-or-gpt-6" and owner.get("reasoning_effort") == "runtime-supported", "Codex owner policy drift")
+
     roles = production.get("model_roles", {})
     codex_roles = (
         "semantic_decisions",
@@ -237,8 +246,8 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
     )
     for role in codex_roles:
         spec = roles.get(role, {})
-        require(spec.get("model") == "gpt-5.6-sol", f"wrong model for {role}")
-        require(spec.get("reasoning_effort") == "high", f"wrong effort for {role}")
+        require(spec.get("model") == "runtime-selected-gpt-5.6-or-gpt-6", f"wrong model policy for {role}")
+        require(spec.get("reasoning_effort") == "runtime-supported", f"wrong effort policy for {role}")
         require(spec.get("execution_surface") == "current Codex task", f"wrong surface for {role}")
 
     pro_roles = (
@@ -617,8 +626,8 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "post_translation_chinese_semantic_map", {}
     )
     require(
-        codex_segmentation.get("model") == "gpt-5.6-sol"
-        and codex_segmentation.get("reasoning_effort") == "high"
+        codex_segmentation.get("model") == "runtime-selected-gpt-5.6-or-gpt-6"
+        and codex_segmentation.get("reasoning_effort") == "runtime-supported"
         and codex_segmentation.get("scope") == "every nonblank source line"
         and codex_segmentation.get("writes_english") is False,
         "dependency lock semantic-segmentation role is incomplete",
@@ -630,8 +639,8 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "dependency lock segmentation-review role is incomplete",
     )
     require(
-        post_edit_semantic_map.get("model") == "gpt-5.6-sol"
-        and post_edit_semantic_map.get("reasoning_effort") == "high"
+        post_edit_semantic_map.get("model") == "runtime-selected-gpt-5.6-or-gpt-6"
+        and post_edit_semantic_map.get("reasoning_effort") == "runtime-supported"
         and post_edit_semantic_map.get("writes_english") is False
         and "without consulting existing English"
         in str(post_edit_semantic_map.get("scope")),

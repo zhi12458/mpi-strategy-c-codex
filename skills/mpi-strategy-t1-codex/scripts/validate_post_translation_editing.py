@@ -106,9 +106,21 @@ def load_semantic_segmentation_module():
     return module
 
 
+def model_effort_matches(identity: dict, locked: dict) -> bool:
+    """Validate actual receipt identity; policy markers are never model identities."""
+    if locked.get("model") == "runtime-selected-gpt-5.6-or-gpt-6":
+        model = identity.get("model")
+        effort = identity.get("reasoning_effort")
+        if not isinstance(model, str) or not isinstance(effort, str):
+            return False
+        return effort in locked.get("allowed_model_efforts", {}).get(model, [])
+    return (identity.get("model") == locked.get("model")
+            and identity.get("reasoning_effort") == locked.get("reasoning_effort"))
+
+
 def load_upstream_model_locks(
     skill_dir: Path | None = None,
-) -> dict[str, dict[str, str]]:
+) -> dict[str, dict[str, Any]]:
     skill_dir = skill_dir or SCRIPT_DIR.parent
     dependency = load_object(skill_dir / "dependency-lock.json")
     production = load_object(skill_dir / "references" / "production-lock.json")
@@ -121,7 +133,7 @@ def load_upstream_model_locks(
     production_roles = production.get("model_roles")
     require(isinstance(dependency_models, dict), "post-edit upstream locks: models missing")
     require(isinstance(production_roles, dict), "post-edit upstream locks: roles missing")
-    locks: dict[str, dict[str, str]] = {}
+    locks: dict[str, dict[str, Any]] = {}
     for stage, dependency_key in UPSTREAM_STAGE_DEPENDENCY_MODEL_KEYS.items():
         dependency_spec = dependency_models.get(dependency_key)
         production_spec = production_roles.get(stage)
@@ -156,6 +168,12 @@ def load_upstream_model_locks(
             "reasoning_effort": dependency_spec["reasoning_effort"],
             "execution_surface": production_spec["execution_surface"],
         }
+        if dependency_spec["model"] == "runtime-selected-gpt-5.6-or-gpt-6":
+            policy = production.get("codex_model_policy", {})
+            require(policy == dependency.get("codex_model_policy"), "upstream Codex policy drift")
+            allowed = policy.get("allowed_model_efforts")
+            require(isinstance(allowed, dict) and allowed, "upstream Codex policy missing")
+            locks[stage]["allowed_model_efforts"] = allowed
     return locks
 
 
@@ -228,15 +246,8 @@ def validate_upstream_reuse(
                 identity.get("provider") == locked_identity["provider"],
                 f"{label}: provider is wrong",
             )
-            require(
-                identity.get("model") == locked_identity["model"],
-                f"{label}: model is wrong",
-            )
-            require(
-                identity.get("reasoning_effort")
-                == locked_identity["reasoning_effort"],
-                f"{label}: reasoning effort is wrong",
-            )
+            require(model_effort_matches(identity, locked_identity),
+                    f"{label}: model or reasoning effort is wrong")
             require(identity.get("role") == stage, f"{label}: model role is wrong")
             require(
                 identity.get("execution_surface")

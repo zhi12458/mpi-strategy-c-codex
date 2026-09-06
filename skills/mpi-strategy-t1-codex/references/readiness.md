@@ -46,7 +46,8 @@ Run `python scripts/install_runtime.py` interactively. A local, non-repository
   and the DeepSeek OS-vault credential are valid without exposing identifiers
   or secrets; `TEAM` is accepted only as the former name for Business;
 - fixed public Flash/high and Pro/max smoke calls pass;
-- the current Codex task is verifiably GPT-5.6-Sol/high;
+- the current Codex task uses a verified allowed GPT-5.6 or GPT-6 model and
+  runtime-supported reasoning level, with its actual settings recorded;
 - role-policy, bridge, semantic-segmentation, and regression contract tests
   pass;
 - no private text was used for installation smoke.
