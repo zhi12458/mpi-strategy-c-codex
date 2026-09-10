@@ -72,6 +72,7 @@ def verify_manifest(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "references/readiness.md",
         "references/english-only-reader-gate.md",
         "references/post-translation-editing.md",
+        "references/semantic-style-native-reader-addendum.md",
         "scripts/confirm_workspace.py",
         "scripts/install_runtime.py",
         "scripts/validate_semantic_segmentation.py",
@@ -559,7 +560,9 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
     style = post_edit.get("oral_dharma_talk_style", {})
     require(
         style.get("genre_triggered") is True
-        and style.get("one_breath_sentence_check") is True
+        and style.get("one_breath_sentence_check") is False
+        and style.get("read_aloud_structure_and_rhythm_check") is True
+        and style.get("sentence_length_quota_forbidden") is True
         and style.get("sentence_split_requires_commissioner") is True
         and style.get("unsupported_we_forbidden") is True
         and style.get("unnecessary_dharma_insertion_forbidden") is True,

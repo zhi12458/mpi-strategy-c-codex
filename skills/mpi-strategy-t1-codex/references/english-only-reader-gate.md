@@ -14,6 +14,11 @@ routes, this gate tests whether the translation works as an original English
 article. It does not replace source-based review, the final Chinese recheck, or
 bidirectional semantic regression.
 
+Read [semantic-style-native-reader-addendum.md](semantic-style-native-reader-addendum.md)
+for the two reader perspectives, author voice, sentence rhythm and closing checks.
+The Dharma reader understands basic Buddhism and contemporary English Dharma
+prose; do not substitute an academic Buddhist-studies voice.
+
 ## Reader isolation
 
 Create two fresh, mutually isolated reader sessions for the initial read and
@@ -31,7 +36,10 @@ reader-visible file must contain no Chinese. It must not expose `source.dj`, the
 term map, metadata that reveals source wording, old translations, competing
 drafts, bilingual files, bridge or analysis artifacts, translator notes, either
 reader's output, or any prior findings or decisions. Use distinct session
-identifiers and retain a prompt hash and isolation receipt. The translator role
+identifiers and retain a prompt hash and isolation receipt. The prompt may
+include a minimal English-only genre, audience and register brief, with no
+source wording, term decisions, examples from earlier drafts or prior findings.
+Do not pass the internal source-bound style profile. The translator role
 may not impersonate either reader.
 
 Both readers treat the manuscript as original English prose and inspect the
@@ -45,7 +53,8 @@ whole document for:
 - preservation of a teacher's direct, humane voice;
 - readability of Buddhist/Dharma terminology for English readers;
 - paragraph density;
-- natural spoken openings and read-aloud sentence length for Dharma talks;
+- natural spoken openings, clear logical hierarchy and read-aloud rhythm for
+  Dharma talks, without word-count or one-breath thresholds;
 - unnecessary passives, abstract nouns, and overly academic phrasing;
 - Buddhist terminology inserted into an otherwise ordinary expression without
   source or register support.
@@ -55,6 +64,10 @@ offer a concrete option when useful, assign severity, and state whether the
 issue is a blocker. Readers do not edit the manuscript.
 
 ## Translator adjudication and commissioner decisions
+
+Group findings into shared, general-reader-only and Dharma-reader-only issues,
+retaining every original finding ID. Check shared issues first, but consensus
+does not prove source fidelity or authorize a material edit.
 
 The translator checks every reader suggestion against the complete original
 Chinese and records `accept`, `partly_accept`, `reject`, `defer`, or

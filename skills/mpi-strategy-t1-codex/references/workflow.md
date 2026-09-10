@@ -13,8 +13,16 @@ full T1-Codex status only when every reused upstream receipt matches the exact
 source and baseline target hashes; otherwise label it `T1-Codex post-edit
 AI-reviewed draft` and state the missing upstream evidence.
 
+For publication-facing prose, also execute
+[semantic-style-native-reader-addendum.md](semantic-style-native-reader-addendum.md).
+Read it at intake, not only after English has been drafted. Its genre-specific
+voice guidance does not turn scholarly or canonical commentary into public-talk
+prose.
+
 ## 1. Intake and authorization
 
+- Before English drafting, establish `style-and-voice.md` as specified in the
+  addendum and bind it to the frozen source hash at stage 2.
 - Identify the sole Chinese source, genre, audience, teacher voice, reference-
   only material, delivery format, and named human decision points.
 - Record whether external source analysis and review are authorized. Private
@@ -105,6 +113,10 @@ AI-reviewed draft` and state the missing upstream evidence.
 - Translate the complete document into `target-draft.dj`. Preserve line and
   blank-line parity, headings, anchors, links, emphasis, digits, quotations,
   questions, reasoning, imagery, first-person presence, and teacher voice.
+- Reconstruct complete meanings and pragmatic functions in idiomatic English;
+  do not draft by word substitution. Check agents, referents, abstract noun
+  actions, logical connectors, metaphor mechanics, and argument rhythm. Chinese
+  segmentation boundaries do not prescribe English sentence boundaries.
 - Perform a translator-owned full-document accuracy, completeness, terminology,
   fluency, register, and structure review against the original Chinese.
 - Write `constraint-coverage.jsonl`, mapping every frozen high-risk constraint
@@ -154,6 +166,10 @@ AI-reviewed draft` and state the missing upstream evidence.
 - Recheck the entire original Chinese afterward. Preserve negation, degree,
   conditions, logic, quantities, quotations, doctrinal distinctions, speaker
   presence, questions, cadence, and titles. Do not use a deletion quota.
+- Judge sentences by clear hierarchy, modifier scope and natural pauses, with
+  varied lengths. No word-count, short-sentence or one-breath quality target.
+  Preserve purposeful repetition. Retain the addendum's read-aloud record and
+  apply the existing commissioner gate to material editing changes.
 - Freeze `target.dj` only after this complete Chinese recheck.
 
 ## 15. Fresh post-concision semantic regression
@@ -183,7 +199,7 @@ AI-reviewed draft` and state the missing upstream evidence.
   document for translation-shaped prose, collocation, nominalization,
   repetition, rhythm, teacher voice, readable Dharma terminology, and paragraph
   density. For Dharma talks, also check natural spoken openings, concrete verbs,
-  read-aloud sentence length, unnecessary passives, and needless Buddhist
+  read-aloud logical structure and rhythm, unnecessary passives, and needless Buddhist
   coloration in ordinary expressions. Readers report findings and blockers but
   do not edit the target.
 
@@ -246,6 +262,10 @@ AI-reviewed draft` and state the missing upstream evidence.
 
 ## 21. Manifest and handoff
 
+- Retain the addendum's final-hash read-aloud record and publication fact and
+  quotation checklist, with unresolved publication items and responsible editor.
+  Index these records and `style-and-voice.md` by path and SHA-256. They do not
+  replace full bilingual review, title audit or named publication approval.
 - Record actual task/provider/model/effort identities; source, term, bridge,
   target, and deliverable hashes; all review and QA receipts; failed attempts;
   unresolved choices; and final status.

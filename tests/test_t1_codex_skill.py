@@ -1491,3 +1491,33 @@ def test_manifest_detects_a_modified_skill_file(tmp_path):
     (copy / "SKILL.md").write_text("modified\n", encoding="utf-8")
     with pytest.raises(validator.ValidationError, match="manifest hash mismatch"):
         validator.verify_manifest(copy)
+
+
+@pytest.mark.parametrize('field,value', [
+    ('one_breath_sentence_check', True),
+    ('read_aloud_structure_and_rhythm_check', False),
+    ('sentence_length_quota_forbidden', False),
+])
+def test_t1_codex_rejects_sentence_length_policy_regression(tmp_path, field, value):
+    copied = tmp_path / 'skill'
+    shutil.copytree(SKILL, copied)
+    lock_path = copied / 'references' / 'production-lock.json'
+    lock = json.loads(lock_path.read_text(encoding='utf-8'))
+    lock['post_translation_editing']['oral_dharma_talk_style'][field] = value
+    lock_path.write_text(json.dumps(lock), encoding='utf-8')
+    with pytest.raises(validator.ValidationError, match='oral Dharma-talk style'):
+        validator.validate_policy(copied)
+
+
+def test_t1_codex_requires_addendum_even_if_manifest_entry_removed(tmp_path):
+    copied = tmp_path / 'skill'
+    shutil.copytree(SKILL, copied)
+    relative = 'references/semantic-style-native-reader-addendum.md'
+    (copied / relative).unlink()
+    manifest = copied / 'MANIFEST.sha256'
+    manifest.write_text(''.join(
+        line for line in manifest.read_text(encoding='utf-8').splitlines(keepends=True)
+        if not line.rstrip().endswith(relative)
+    ), encoding='utf-8')
+    with pytest.raises(validator.ValidationError, match='manifest omits required files'):
+        validator.verify_manifest(copied)

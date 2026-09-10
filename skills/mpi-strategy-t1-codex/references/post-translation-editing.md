@@ -11,6 +11,11 @@ bilingual reviews unless the user explicitly requests that work.
 but it never licenses omission, addition, stronger or weaker meaning, or a
 different teacher voice.
 
+Read [semantic-style-native-reader-addendum.md](semantic-style-native-reader-addendum.md)
+before editing. Establish its source-bound style-and-voice profile alongside the
+source-only semantic map, and retain its read-aloud and publication checklists
+at closure. Do not rerun translation to add these editorial records.
+
 ## Entry and evidence reuse
 
 1. Preserve the incoming Chinese, existing English, and any bilingual or Word
@@ -159,8 +164,10 @@ Prefer plain, concise, immediately understandable spoken-publication prose:
   stacked nominalizations, or grand but vague wording;
 - keep the teacher's direct, warm, grounded authority rather than turning the
   talk into an academic paper;
-- flag a sentence that cannot be read aloud comfortably in one breath, but do
-  not split or merge it without commissioner approval;
+- judge logical hierarchy, modifier scope, pauses and listener comprehension,
+  not word count or whether a sentence fits in one breath; allow natural long
+  and short sentences and avoid choppy fragmentation. Record the read-aloud
+  check; do not split or merge existing sentences without commissioner approval;
 - make openings sound like natural English speech without mechanically carrying
   over Chinese courtesies;
 - use `we` only when Chinese person scope supports it;

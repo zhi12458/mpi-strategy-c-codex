@@ -45,6 +45,13 @@ Read
 when editing an existing Chinese-English manuscript or running the required
 post-translation native-English stage of a new T1-Codex document.
 
+For publication-facing Buddhist translation or revision, read
+[references/semantic-style-native-reader-addendum.md](references/semantic-style-native-reader-addendum.md)
+before drafting or editing, and execute its final checks after the core
+workflow. Source authority, material-change decisions, and post-edit semantic
+regression remain mandatory. This editorial revision is
+`semantic-style-native-readers-1`; it does not refresh runtime readiness.
+
 ## Non-negotiable boundaries
 
 - Freeze the original input, `source.dj`, project metadata, terminology, and
