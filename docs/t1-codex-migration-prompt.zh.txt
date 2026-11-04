@@ -1,3 +1,14 @@
+MPI T1-Codex 完整安装迁移提示词（2026-11-04，DeepSeek-only 修正版）
+
+请锁定代码提交：5028626b9557f7744fbb7bb745f848b66c437304
+仓库：https://github.com/zhi12458/mpi-strategy-c-codex.git
+分支：codex/t1-verb-led-english（仅供定位，实际核验上述完整提交；尚未合并main）
+技能目录：skills/mpi-strategy-t1-codex
+技能 MANIFEST.sha256 文件自身 SHA-256：8f9951e8805413d7359c6c45d1382fb1218f6c7037379e87087e133b1c496a03
+workflow 1.2.0 / installer 1.1.0 / runtime deepseek-only-v1。
+这份提示词取代之前要求OMP OpenAI登录、工作区确认和Sol/GPT smoke的版本。
+精确代码提交内包文件与本哈希一致；本文头部属于随后单独提交的迁移文档更新，不影响该技能包。
+
 请实际安装本交付目录中的 MPI T1-Codex，并验证；不要只给方案。先阅读本机 skill-installer、skill-creator。包内全部参考文档是本提示词不可分割的执行要求，不可只读摘要。
 
 1. 从 https://github.com/zhi12458/mpi-strategy-c-codex.git 获取交付TXT头部指定的精确代码提交，技能路径 skills/mpi-strategy-t1-codex；不要安装移动main或旧candidate标签。版本workflow 1.2.0、installer 1.1.0，含codex-model-flex-1、semantic-style-native-readers-1、verb-led-english-1、deepseek-only-v1，release_ready=false。若从交付ZIP安装，先核验其传输manifest；再核验技能manifest。不得重算manifest掩盖版本或内容不符。
