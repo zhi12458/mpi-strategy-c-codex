@@ -75,6 +75,7 @@ def verify_manifest(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         "references/semantic-style-native-reader-addendum.md",
         "scripts/confirm_workspace.py",
         "scripts/install_runtime.py",
+        "scripts/provider_runtime.py",
         "scripts/validate_semantic_segmentation.py",
         "scripts/validate_reader_gate.py",
         "scripts/validate_post_translation_editing.py",
@@ -263,35 +264,14 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
 
     validate_verb_led_policy(skill_dir, production, dependency)
 
-    workspace = dependency.get("openai_workspace_policy", {})
-    require(
-        workspace.get("allowed_workspace_kinds") == ["personal", "business"],
-        "Personal and Business workspace support is not locked",
-    )
-    require(
-        workspace.get("accepted_confirmation_tokens")
-        == ["PERSONAL", "BUSINESS", "TEAM"],
-        "workspace confirmation tokens are not locked",
-    )
-    require(
-        workspace.get("team_normalizes_to") == "business",
-        "the legacy Team name is not normalized to Business",
-    )
-    require(
-        workspace.get("interactive_confirmation_script")
-        == "scripts/confirm_workspace.py",
-        "workspace confirmation script is not locked",
-    )
-    require(
-        workspace.get("workspace_identifiers_recorded") is False
-        and workspace.get("credentials_recorded") is False,
-        "workspace confirmation privacy policy is unsafe",
-    )
-    production_workspace = production.get("openai_workspace_policy", {})
-    require(
-        production_workspace.get("allowed") == ["Personal", "ChatGPT Business"],
-        "production lock does not allow Personal and Business",
-    )
+    expected_provider_policy = {'profile': 'deepseek-only-v1', 'omp_openai_login_required': False, 'omp_workspace_confirmation_required': False, 'gpt_smoke_required': False, 'legacy_base_ready_required': False, 'codex_identity_verified_in_current_task': True, 'required_provider_roles': ['source_analysis', 'bilingual_review'], 'managed_root_env': 'MPI_STRATEGY_T1_CODEX_ROOT'}
+    for label, lock in (("dependency", dependency), ("production", production)):
+        require(lock.get("provider_runtime_policy") == expected_provider_policy,
+                f"{label} DS-only provider runtime policy is incomplete")
+        require("openai_workspace_policy" not in lock,
+                "OMP OpenAI workspace policy must not gate T1-Codex")
+    require(dependency.get("base_runtime", {}).get("base_ready_required") is False,
+            "legacy T1 READY must not gate DS-only readiness")
     runtime_installer = dependency.get("runtime_installer", {})
     require(
         runtime_installer.get("script") == "scripts/install_runtime.py",
@@ -304,8 +284,8 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
     )
     require(
         runtime_installer.get("deepseek_masked_prompt_required_when_missing") is True
-        and runtime_installer.get("base_ready_true_required") is True,
-        "runtime installer does not require credentials and base readiness",
+        and runtime_installer.get("base_ready_true_required") is False,
+        "runtime installer does not require credentials and DS-only readiness",
     )
     require(
         runtime_installer.get("static_package_validation_is_runtime_readiness") is False,

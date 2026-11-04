@@ -99,20 +99,20 @@ no review round, model role, external authorization, or release approval changes
   supported by that runtime; do not force Sol or high. Record the actual model,
   effort, and session identity. Follow `codex_model_policy` in the production
   lock; model permission does not replace document review or human approval.
-- Installation accepts an explicitly selected Personal or ChatGPT Business
-  workspace. `TEAM` is accepted only as the former Business name. Require the
-  selected account configuration to pass the locked model catalog and public
-  smoke gates; never store workspace identifiers or credentials in the Skill.
-- First installation must run `python scripts/install_runtime.py` interactively.
-  For an existing installation, use `python scripts/install_runtime.py
-  --revalidate-existing --confirm-public-smoke` when public tests are authorized.
-  This preserves the confirmed account and managed checkouts, verifies their
-  current state, and runs fresh public smoke before binding the current package.
-  Reauthenticate only when the existing authentication cannot be verified;
-  do not force browser login merely because the skill manifest changed.
-  Static package validation is never runtime readiness. If OMP 17.3.4, the
-  masked DeepSeek credential, public smoke, base doctor, or base `READY=true`
-  is missing, report `BLOCKED`; never claim that T1-Codex is Codex-only.
+- The provider runtime is `deepseek-only-v1`: OMP runs Flash/high and Pro/max,
+  while GPT drafting/editing runs in the current Codex task. No OMP OpenAI
+  login, Personal/Business confirmation, or GPT smoke is required.
+- Install with `python scripts/install_runtime.py --base-skill-dir <immutable-base>`.
+  Authorize public tests interactively or with `--confirm-public-smoke`.
+  Revalidation adds `--revalidate-existing`; it does not replace repositories.
+  Use the separate `MPI_STRATEGY_T1_CODEX_ROOT` managed root and schema-2
+  `T1_CODEX_RUNTIME_READY.json`. This proves only the DeepSeek provider runtime;
+  verify the current Codex identity separately before any production claim.
+  Never read or relabel legacy T1 `READY.json` as proof of this profile.
+- Preserve the frozen base package. Reuse only its verified repository, doctor,
+  credential, fault-injection, mechanical/DOCX and DS public smoke helpers.
+  Missing locks, dependencies, credential or checks mean `BLOCKED`.
+  Static package validation alone is not runtime readiness.
 - Two fresh Pro/max bilingual reviews remain blind to source analysis, bridge
   artifacts, competing translations, and each other. Codex adjudicates every
   finding against the original Chinese and records its disposition.

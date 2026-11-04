@@ -113,7 +113,7 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
     )
     assert dependency["strategy_id"] == "T1-CODEX"
     assert dependency["workflow_version"] == "1.2.0"
-    assert dependency["installer_version"] == "1.0.2"
+    assert dependency["installer_version"] == "1.1.0"
     assert dependency["base_runtime"]["stable_commit"] == (
         "af795df625eca95ab138094bd25172266007f24f"
     )
@@ -138,15 +138,6 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
     ] == "max"
 
 
-def test_t1_codex_allows_personal_and_business_workspace_confirmations():
-    dependency = json.loads((SKILL / "dependency-lock.json").read_text(encoding="utf-8"))
-    policy = dependency["openai_workspace_policy"]
-    assert policy["allowed_workspace_kinds"] == ["personal", "business"]
-    assert policy["accepted_confirmation_tokens"] == ["PERSONAL", "BUSINESS", "TEAM"]
-    assert policy["team_normalizes_to"] == "business"
-    assert policy["workspace_identifiers_recorded"] is False
-    assert policy["credentials_recorded"] is False
-
 
 def test_t1_codex_runtime_installer_is_fail_closed():
     dependency = json.loads((SKILL / "dependency-lock.json").read_text(encoding="utf-8"))
@@ -156,7 +147,7 @@ def test_t1_codex_runtime_installer_is_fail_closed():
     assert policy["interactive"] is True
     assert policy["fail_closed"] is True
     assert policy["deepseek_masked_prompt_required_when_missing"] is True
-    assert policy["base_ready_true_required"] is True
+    assert policy["base_ready_true_required"] is False
     assert policy["static_package_validation_is_runtime_readiness"] is False
 
 
@@ -175,9 +166,10 @@ def test_runtime_installer_verifies_immutable_base_package(tmp_path, monkeypatch
         encoding="utf-8",
     )
     manifest = base / "MANIFEST.sha256"
-    manifest.write_text("fixture\n", encoding="utf-8")
+
     (base / "scripts" / "strategy_t1.py").write_text("# fixture\n", encoding="utf-8")
     (base / "scripts" / "credential_store.py").write_text("# fixture\n", encoding="utf-8")
+    manifest.write_text("".join(runtime_installer.sha256_file(f) + "  " + f.relative_to(base).as_posix() + "\n" for f in sorted(base.rglob("*")) if f.is_file()), encoding="utf-8")
     monkeypatch.setattr(
         runtime_installer,
         "EXPECTED_BASE_MANIFEST_SHA256",
@@ -185,26 +177,6 @@ def test_runtime_installer_verifies_immutable_base_package(tmp_path, monkeypatch
     )
     assert runtime_installer.verify_base_package(base)["release_ready"] is True
 
-
-def test_runtime_installer_rejects_incomplete_ready_evidence():
-    with pytest.raises(runtime_installer.RuntimeInstallError, match="ready=true"):
-        runtime_installer.base_ready_from_doctor({"ok": True, "result": {"ready": False}})
-    with pytest.raises(runtime_installer.RuntimeInstallError, match="DeepSeek"):
-        runtime_installer.base_ready_from_doctor(
-            {"ok": True, "result": {"ready": True, "deepseek_credential": {}}}
-        )
-    with pytest.raises(runtime_installer.RuntimeInstallError, match="smoke"):
-        runtime_installer.base_ready_from_doctor(
-            {
-                "ok": True,
-                "result": {
-                    "ready": True,
-                    "deepseek_credential": {"present": True},
-                    "smoke_test": {"status": "FAIL"},
-                    "fault_injection": {"status": "PASS"},
-                },
-            }
-        )
 
 
 def test_runtime_installer_normalizes_real_omp_version_output():
@@ -230,70 +202,6 @@ def test_runtime_installer_reports_missing_dependencies(monkeypatch):
     assert "python-keyring" in missing
 
 
-def test_runtime_installer_accepts_complete_ready_evidence():
-    ready = {
-        "ready": True,
-        "deepseek_credential": {"present": True},
-        "smoke_test": {"status": "PASS"},
-        "fault_injection": {"status": "PASS"},
-    }
-    assert runtime_installer.base_ready_from_doctor({"ok": True, "result": ready}) is ready
-
-
-def test_runtime_installer_runs_credential_smoke_and_doctor_gates(tmp_path, monkeypatch):
-    class InteractiveInput:
-        @staticmethod
-        def isatty():
-            return True
-
-    calls = []
-    credential_states = iter((False, True))
-    monkeypatch.setattr(runtime_installer.sys, "stdin", InteractiveInput())
-    monkeypatch.setattr(runtime_installer, "verify_base_package", lambda _path: {})
-    monkeypatch.setattr(runtime_installer, "missing_dependencies", lambda: [])
-    monkeypatch.setattr(runtime_installer.shutil, "which", lambda name: "/bin/omp" if name == "omp" else None)
-    monkeypatch.setattr(runtime_installer, "omp_version", lambda _path: "17.3.4")
-    monkeypatch.setattr(
-        runtime_installer,
-        "run_interactive",
-        lambda command, cwd: calls.append((command, cwd)),
-    )
-    monkeypatch.setattr(
-        runtime_installer,
-        "credential_present",
-        lambda _base: next(credential_states),
-    )
-    monkeypatch.setattr(runtime_installer, "managed_root", lambda: tmp_path)
-    monkeypatch.setattr("builtins.input", lambda _prompt: "RUN PUBLIC SMOKE")
-
-    def fake_json(command, _cwd):
-        if command[-1] == "doctor":
-            return {
-                "ok": True,
-                "result": {
-                    "ready": True,
-                    "deepseek_credential": {"present": True},
-                    "smoke_test": {"status": "PASS"},
-                    "fault_injection": {"status": "PASS"},
-                },
-            }
-        return {"status": "PASS", "manifest": {"sha256": "candidate-manifest"}}
-
-    monkeypatch.setattr(runtime_installer, "run_json", fake_json)
-    result = runtime_installer.install_runtime(tmp_path / "mpi-strategy-t1")
-
-    flattened = [part for command, _cwd in calls for part in command]
-    assert "login-openai" in flattened
-    assert "scripts/confirm_workspace.py" in flattened
-    assert "scripts/credential_store.py" in flattened
-    assert "--confirm-public-smoke" in flattened
-    assert result["runtime_ready"] is True
-    assert result["deepseek_credential_present"] is True
-    assert result["public_smoke_status"] == "PASS"
-    assert result["candidate_ref"] == "t1-codex-v1.2.0-candidate.2"
-    assert result["candidate_manifest_sha256"] == "candidate-manifest"
-    saved = json.loads((tmp_path / "T1_CODEX_RUNTIME_READY.json").read_text(encoding="utf-8"))
-    assert saved["credentials_recorded"] is False
 
 
 @pytest.mark.parametrize(
@@ -1473,21 +1381,6 @@ def test_post_translation_editing_rejects_reversed_docx_pair_order(tmp_path):
     ):
         post_edit_validator.validate_post_translation_editing(tmp_path)
 
-
-def test_t1_codex_install_prompt_supports_personal_and_business_without_secrets():
-    prompt = (ROOT / "INSTALL_PROMPT-T1-CODEX.zh-CN.md").read_text(encoding="utf-8")
-    assert "https://github.com/zhi12458/mpi-strategy-c-codex.git" in prompt
-    assert "t1-codex-v1.2.0-candidate.2" in prompt
-    assert "python scripts/install_runtime.py" in prompt
-    assert "PERSONAL" in prompt
-    assert "BUSINESS" in prompt
-    assert "旧称 TEAM" in prompt
-    assert "不得要求我在聊天中发送密码、验证码、Key 或 token" in prompt
-    assert "python scripts/credential_store.py" not in prompt
-    assert "deepseek_credential_present: true" in prompt
-    assert "base_ready: true" in prompt
-    assert "public_smoke_status: PASS" in prompt
-    assert "全部使用 Codex" in prompt
 
 
 def test_manifest_detects_a_modified_skill_file(tmp_path):

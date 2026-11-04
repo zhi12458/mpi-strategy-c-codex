@@ -2,7 +2,7 @@
   "schema_version": 1,
   "strategy_id": "T1-CODEX",
   "workflow_version": "1.2.0",
-  "installer_version": "1.0.2",
+  "installer_version": "1.1.0",
   "release_ready": false,
   "release_status": "production_default_selected_pending_public_smoke_and_multi_genre_validation",
   "source_repository": "https://github.com/zhi12458/mpi-strategy-c-codex.git",
@@ -14,8 +14,8 @@
     "stable_ref": "t1-v1.0.1-installer-1.0.0",
     "stable_commit": "af795df625eca95ab138094bd25172266007f24f",
     "stable_manifest_sha256": "765bec51ed736a6e505e0e1bf6ef2f5a9dd7ce3eb4db7e2cc99dd29cb3ebd47e",
-    "purpose": "locked OMP, credential, repository, fault-injection, Flash/high, and Pro/max runtime",
-    "base_ready_required": true
+    "purpose": "immutable repository, credential and QA helpers; not the T1-OMP installer or READY",
+    "base_ready_required": false
   },
   "omp": {
     "validated_version": "17.3.4",
@@ -92,7 +92,10 @@
       "reads_english": false
     },
     "english_only_readers": {
-      "roles": ["general_nonfiction_editor", "english_dharma_editor"],
+      "roles": [
+        "general_nonfiction_editor",
+        "english_dharma_editor"
+      ],
       "model_or_provider": "record actual identity; no silent translator-role reuse",
       "execution_surface": "four distinct fresh isolated English-only sessions",
       "visible_input_count": 1,
@@ -106,33 +109,29 @@
     }
   },
   "system_dependencies": {
-    "required_commands": ["git", "python3", "pandoc", "omp"],
-    "docx_renderer_candidates": ["libreoffice", "soffice"]
-  },
-  "openai_workspace_policy": {
-    "allowed_workspace_kinds": ["personal", "business"],
-    "accepted_confirmation_tokens": ["PERSONAL", "BUSINESS", "TEAM"],
-    "team_normalizes_to": "business",
-    "interactive_confirmation_script": "scripts/confirm_workspace.py",
-    "base_runtime_compatibility_filename": "personal-workspace-confirmation.json",
-    "selected_workspace_model_catalog_required": true,
-    "selected_workspace_public_smoke_required": true,
-    "workspace_identifiers_recorded": false,
-    "credentials_recorded": false
+    "required_commands": [
+      "git",
+      "python3",
+      "pandoc",
+      "omp"
+    ],
+    "docx_renderer_candidates": [
+      "libreoffice",
+      "soffice"
+    ]
   },
   "runtime_installer": {
     "script": "scripts/install_runtime.py",
     "interactive": true,
     "fail_closed": true,
     "deepseek_masked_prompt_required_when_missing": true,
-    "base_ready_true_required": true,
+    "base_ready_true_required": false,
     "static_package_validation_is_runtime_readiness": false,
-    "success_report": "T1_CODEX_RUNTIME_READY.json"
+    "success_report": "T1_CODEX_RUNTIME_READY.json",
+    "provider_profile": "deepseek-only-v1"
   },
   "required_gates": [
     "skill_manifest",
-    "personal_or_business_workspace_confirmation",
-    "base_t1_ready_true",
     "omp_exact_version",
     "flash_high_public_smoke",
     "pro_max_public_smoke",
@@ -150,7 +149,11 @@
     "verb_led_source_analysis_and_drafting",
     "verb_led_clause_review_and_issue_record",
     "verb_led_semantic_regression",
-    "verb_led_english_only_reader_checks"
+    "verb_led_english_only_reader_checks",
+    "deepseek_only_provider_readiness",
+    "locked_repositories_and_doctors",
+    "disposable_fault_injection",
+    "public_mechanical_and_docx_smoke"
   ],
   "privacy": {
     "public_smoke_private_content_allowed": false,
@@ -266,5 +269,19 @@
       ],
       "checked_draft_retained": true
     }
-  }
+  },
+  "provider_runtime_policy": {
+    "profile": "deepseek-only-v1",
+    "omp_openai_login_required": false,
+    "omp_workspace_confirmation_required": false,
+    "gpt_smoke_required": false,
+    "legacy_base_ready_required": false,
+    "codex_identity_verified_in_current_task": true,
+    "required_provider_roles": [
+      "source_analysis",
+      "bilingual_review"
+    ],
+    "managed_root_env": "MPI_STRATEGY_T1_CODEX_ROOT"
+  },
+  "runtime_revision": "deepseek-only-v1"
 }

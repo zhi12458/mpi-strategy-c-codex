@@ -36,41 +36,25 @@ coverage and these locked invariants:
 
 ## Local runtime readiness
 
-For first installation, run `python scripts/install_runtime.py` interactively.
-For an existing installation with an explicitly confirmed account, run
-`python scripts/install_runtime.py --revalidate-existing --confirm-public-smoke`
-after authorization for the public tests. Revalidation checks the current
-account against its saved selection, both base doctors, locked repositories,
-credentials, OMP, and fresh public smoke. It does not open OAuth or replace
-managed repositories. Missing or changed account selection needs interactive
-confirmation; failed authentication needs login. A manifest change alone does
-not require either. Previous READY and test evidence are retained.
+Use the DS-only installation and revalidation commands in installation.md.
+Only schema-2 evidence with `runtime_profile: deepseek-only-v1` is accepted for
+this runtime. Its `runtime_ready`/`provider_runtime_ready` means only:
+- exact skill and immutable helper hashes;
+- OMP 17.3.4 with Flash/high and Pro/max catalog support;
+- DeepSeek OS-vault credential;
+- exact repository/toolkit commits, submodule and both repository doctors;
+- fresh disposable fault injection;
+- fresh public mechanical/DOCX smoke and exactly two DeepSeek model calls.
 
-A local, non-repository
-`T1_CODEX_RUNTIME_READY.json` may say `runtime_ready: true` only when:
+No OMP OpenAI login, workspace confirmation, GPT smoke or legacy base READY is
+required. Do not relabel old receipts; use the separate T1-Codex managed root.
+A new attempt backs up prior evidence and writes non-ready state before checks.
+Failure cannot leave an old ready flag looking current.
 
-- the Skill manifest and candidate ref match;
-- the stable base T1 `READY.json` is `ready: true` and its manifest matches;
-- OMP is exactly the locked version;
-- an explicitly selected Personal or ChatGPT Business workspace confirmation
-  and the DeepSeek OS-vault credential are valid without exposing identifiers
-  or secrets; `TEAM` is accepted only as the former name for Business;
-- fixed public Flash/high and Pro/max smoke calls pass;
-- the current Codex task uses a verified allowed GPT-5.6 or GPT-6 model and
-  runtime-supported reasoning level, with its actual settings recorded;
-- role-policy, bridge, semantic-segmentation, and regression contract tests
-  pass;
-- no private text was used for installation smoke.
-
-`validate_package.py` proves only package integrity and role-policy consistency.
-It cannot establish runtime readiness. If the runtime report is absent, any
-required field is false, or the base doctor does not return `ready: true`, the
-installation status is `BLOCKED`. Do not silently replace Flash/Pro stages with
-Codex or describe such a run as T1-Codex.
-
-Keep local readiness under a T1-Codex-specific managed root. Never commit READY,
-credentials, account identifiers, smoke transcripts containing secrets, or
-manuscripts.
+The current Codex model/effort/session identity must still be verified against
+`codex_model_policy` in the current task. Provider readiness cannot prove it.
+Do not claim document completion, human approval or release readiness from
+installation success. External private-text authorization remains mandatory.
 
 ## Strategy release readiness
 

@@ -26,15 +26,19 @@
     "enabled": true,
     "scope": "MPI Chinese-to-English Buddhist books, articles, and documents",
     "selected_workflow": "t1_codex_quality",
-    "explicit_overrides": ["T1-OMP", "C", "M", "M2", "user-defined workflow"],
-    "implicit_exclusions": ["PPT", "audio", "video", "non-Buddhist general translation"]
-  },
-  "openai_workspace_policy": {
-    "allowed": ["Personal", "ChatGPT Business"],
-    "legacy_name": "ChatGPT Team",
-    "selection": "the installer displays the redacted OMP usage summaries and the user explicitly confirms PERSONAL or BUSINESS; TEAM is accepted and normalized to BUSINESS",
-    "verification": "the selected local account configuration must expose the locked model catalog and pass fixed public smoke",
-    "privacy": "store only the declared workspace kind and hashes of redacted evidence; never store email, account ID, workspace label, OAuth token, password, or verification code"
+    "explicit_overrides": [
+      "T1-OMP",
+      "C",
+      "M",
+      "M2",
+      "user-defined workflow"
+    ],
+    "implicit_exclusions": [
+      "PPT",
+      "audio",
+      "video",
+      "non-Buddhist general translation"
+    ]
   },
   "workflow_modes": {
     "t1_codex_quality": {
@@ -58,7 +62,11 @@
     },
     "full_pretranslation_experiments": {
       "production_default": false,
-      "modes": ["T1.1.2 Sol semantic restructuring", "T1.2 human_quality", "T1.2 ai_scale"],
+      "modes": [
+        "T1.1.2 Sol semantic restructuring",
+        "T1.2 human_quality",
+        "T1.2 ai_scale"
+      ],
       "activation": "explicit user selection plus isolated evidence",
       "silent_promotion_allowed": false
     }
@@ -246,17 +254,62 @@
   "english_only_reader_gate": {
     "mandatory": true,
     "runs_after": "fresh_post_concision_bidirectional_semantic_regression",
-    "initial_and_final_roles": ["general nonfiction editor", "English Buddhist/Dharma editor"],
+    "initial_and_final_roles": [
+      "general nonfiction editor",
+      "English Buddhist/Dharma editor"
+    ],
     "reader_visible_manuscripts_retained": true,
     "reader_visible_manuscripts_must_contain_no_chinese": true,
     "reader_visible_manuscripts_bound_to_canonical_target_hash": true,
-    "reader_checks": ["translation-shaped prose", "collocation", "nominalization", "repetition", "rhythm", "teacher voice", "Dharma terminology readability", "paragraph density", "natural spoken opening", "read-aloud logical structure and rhythm", "unnecessary passive voice", "unnecessary Buddhist coloration in ordinary expressions"],
+    "reader_checks": [
+      "translation-shaped prose",
+      "collocation",
+      "nominalization",
+      "repetition",
+      "rhythm",
+      "teacher voice",
+      "Dharma terminology readability",
+      "paragraph density",
+      "natural spoken opening",
+      "read-aloud logical structure and rhythm",
+      "unnecessary passive voice",
+      "unnecessary Buddhist coloration in ordinary expressions"
+    ],
     "translator_must_recheck_every_finding_against_full_chinese": true,
     "source_evidence_must_be_literal_span_of_hash_bound_source": true,
-    "low_risk_direct_edit_categories": ["grammar", "punctuation", "collocation", "accidental_repetition", "unnecessary_passive", "uniquely_recoverable_referent", "meaning_neutral_simplification", "ordinary_english_polish"],
-    "commissioner_approval_categories": ["doctrine", "meaning_or_degree", "terminology", "author_voice_or_tone", "metaphor", "numbers", "person_relation_or_ambiguous_referent", "information_addition_or_deletion", "sentence_split_or_merge", "paragraph_structure", "quotation_wording", "culture_specific_explanatory_translation"],
+    "low_risk_direct_edit_categories": [
+      "grammar",
+      "punctuation",
+      "collocation",
+      "accidental_repetition",
+      "unnecessary_passive",
+      "uniquely_recoverable_referent",
+      "meaning_neutral_simplification",
+      "ordinary_english_polish"
+    ],
+    "commissioner_approval_categories": [
+      "doctrine",
+      "meaning_or_degree",
+      "terminology",
+      "author_voice_or_tone",
+      "metaphor",
+      "numbers",
+      "person_relation_or_ambiguous_referent",
+      "information_addition_or_deletion",
+      "sentence_split_or_merge",
+      "paragraph_structure",
+      "quotation_wording",
+      "culture_specific_explanatory_translation"
+    ],
     "options_and_fidelity_tradeoffs_required_before_sensitive_change": true,
-    "sensitive_proposal_required_fields": ["current_english", "proposed_english", "reason", "fidelity_effect", "source_evidence", "commissioner_decision"],
+    "sensitive_proposal_required_fields": [
+      "current_english",
+      "proposed_english",
+      "reason",
+      "fidelity_effect",
+      "source_evidence",
+      "commissioner_decision"
+    ],
     "every_finding_risk_classified": true,
     "post_edit_full_chinese_recheck_required": true,
     "post_edit_full_document_bidirectional_regression_required": true,
@@ -272,8 +325,34 @@
     "semantic_map_reader_facing_delivery_allowed": false,
     "upstream_status_inheritance": {
       "boolean_declaration_sufficient": false,
-      "required_stages": ["source_analysis", "semantic_bridge_generation", "semantic_bridge_challenge", "semantic_decisions", "chinese_semantic_segmentation", "chinese_semantic_segmentation_review", "translation_and_self_review", "bilingual_review_round_1", "review_application_round_1", "bilingual_review_round_2", "review_application_round_2", "title_audit", "concision_and_chinese_recheck", "post_concision_semantic_regression", "deterministic_content_qa"],
-      "receipt_required_fields": ["stage", "artifact", "artifact_sha256", "source_sha256", "baseline_target_sha256", "scope", "status", "role_or_tool_identity_matches_recorded_configuration", "reused_without_rerun"],
+      "required_stages": [
+        "source_analysis",
+        "semantic_bridge_generation",
+        "semantic_bridge_challenge",
+        "semantic_decisions",
+        "chinese_semantic_segmentation",
+        "chinese_semantic_segmentation_review",
+        "translation_and_self_review",
+        "bilingual_review_round_1",
+        "review_application_round_1",
+        "bilingual_review_round_2",
+        "review_application_round_2",
+        "title_audit",
+        "concision_and_chinese_recheck",
+        "post_concision_semantic_regression",
+        "deterministic_content_qa"
+      ],
+      "receipt_required_fields": [
+        "stage",
+        "artifact",
+        "artifact_sha256",
+        "source_sha256",
+        "baseline_target_sha256",
+        "scope",
+        "status",
+        "role_or_tool_identity_matches_recorded_configuration",
+        "reused_without_rerun"
+      ],
       "inner_completion_receipt_required": true,
       "inner_receipt_source_target_scope_status_and_identity_validated": true,
       "model_stage_identity_compared_with_production_lock": true,
@@ -429,7 +508,11 @@
     "verb_led_english_only_reader_checks"
   ],
   "release_validation": {
-    "required_genres": ["Dharma talk", "written article", "quotation-dense Buddhist text"],
+    "required_genres": [
+      "Dharma talk",
+      "written article",
+      "quotation-dense Buddhist text"
+    ],
     "comparison": "same frozen source, terminology, review gates, and anonymous human adjudication against T1-OMP rollback",
     "pass_rule": "T1-Codex wins or ties in all genres, has no new unresolved critical or major defect, and shows no recurring Chinese-understanding failure",
     "current_status": "pending",
@@ -552,5 +635,19 @@
       ],
       "checked_draft_retained": true
     }
-  }
+  },
+  "provider_runtime_policy": {
+    "profile": "deepseek-only-v1",
+    "omp_openai_login_required": false,
+    "omp_workspace_confirmation_required": false,
+    "gpt_smoke_required": false,
+    "legacy_base_ready_required": false,
+    "codex_identity_verified_in_current_task": true,
+    "required_provider_roles": [
+      "source_analysis",
+      "bilingual_review"
+    ],
+    "managed_root_env": "MPI_STRATEGY_T1_CODEX_ROOT"
+  },
+  "runtime_revision": "deepseek-only-v1"
 }

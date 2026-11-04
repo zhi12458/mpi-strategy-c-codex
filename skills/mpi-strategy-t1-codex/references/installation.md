@@ -1,87 +1,59 @@
-# T1-Codex installation
+# T1-Codex DeepSeek-only provider installation
 
-The T1-Codex Skill and the locked provider runtime are separate packages. The
-Skill owns routing and workflow; the base T1 runtime owns OMP, credentials,
-repository doctors, fault injection, and Flash/Pro provider calls.
+Read the dependency and production locks. The current Codex task owns GPT
+translation/editing. OMP owns DeepSeek Flash/high and Pro/max only. Do not run
+OMP OpenAI login, workspace confirmation, GPT smoke, the legacy T1 installer,
+or its full doctor/READY gate. `confirm_workspace.py` is retained only as a
+legacy compatibility helper, not part of this installation path.
 
-## Fixed candidate sources
+## Dependencies and immutable helpers
 
-- Repository: `https://github.com/zhi12458/mpi-strategy-c-codex.git`
-- T1-Codex path: `skills/mpi-strategy-t1-codex`
-- Candidate ref: `t1-codex-v1.2.0-candidate.2`
-- Stable base-runtime path: `skills/mpi-strategy-t1`
-- Stable base-runtime ref: `t1-v1.0.1-installer-1.0.0`
-- Stable base-runtime commit: `af795df625eca95ab138094bd25172266007f24f`
+Use Python >=3.11, Git, Pandoc (Djot/DOCX support), keyring>=25,<27,
+LibreOffice/soffice, required fonts and exact OMP 17.3.4. Install the complete
+T1-Codex package. Keep the base T1 package from commit
+`af795df625eca95ab138094bd25172266007f24f` in a separate directory;
+its manifest hash must be
+`765bec51ed736a6e505e0e1bf6ef2f5a9dd7ce3eb4db7e2cc99dd29cb3ebd47e`.
+Every listed base file is verified before helper execution. Never modify it.
+Repository/toolkit origins and commits remain those in its dependency lock.
 
-Do not install from a moving branch for a validated production run. The
-candidate ref remains non-release-ready until the readiness and multi-genre
-program in `production-lock.json` passes.
+## First installation
 
-## Required order
-
-For an already installed runtime, first use the bounded revalidation entry:
+From the T1-Codex skill directory run:
 
 ```sh
-python scripts/install_runtime.py --revalidate-existing --confirm-public-smoke
+python scripts/install_runtime.py --base-skill-dir <immutable-base>
 ```
 
-Use the smoke flag only when these public requests are authorized. This path
-requires a valid saved Personal/Business selection, verifies the current account
-and existing locked checkouts, and runs the unchanged base public smoke before
-writing a new package-bound runtime report. It does not log in, install
-dependencies, clone repositories, or rewrite historical base evidence. Failures
-leave the prior runtime report intact. Authenticate or confirm a changed account
-only when that specific check fails. The steps below remain the first-install
-and missing-installation recovery path. This repair is a local runtime revision;
-it does not change the immutable base release or assert a new public release.
+Only a missing DeepSeek key needs masked local credential entry. The existing
+OS vault service/account is reused; no credentials are copied from other users.
+The installer asks for `RUN PUBLIC SMOKE`; previously authorized automation may
+use `--confirm-public-smoke`. No TTY is required if the credential is present
+and that explicit flag is supplied. Never send private content as smoke.
+Optional `--candidate-mpi` and `--candidate-toolkit` accept local clone sources;
+origin, exact SHA, submodule and content verification are still mandatory.
 
-1. Read Codex's built-in `skill-installer` instructions.
-2. Inspect existing `mpi-strategy-t1` and `mpi-strategy-t1-codex` directories.
-   Never overwrite an existing installation without reporting its version,
-   manifest, readiness, and differences. Back up the existing package before installing this candidate.2. Preserve
-   local differences and recheck readiness; never carry an old package
-   readiness claim forward.
-3. Install the stable base runtime files from their fixed ref, but do not run
-   its Personal-only confirmation helper. The immutable base tag predates
-   Business-workspace support.
-4. Install `skills/mpi-strategy-t1-codex` from the fixed candidate ref.
-5. Confirm that OMP is exactly `17.3.4`. If it is missing, obtain the user's
-   native approval and install exactly
-   `@oh-my-pi/pi-coding-agent@17.3.4`; do not substitute another version.
-6. From the T1-Codex Skill directory, run the fail-closed interactive installer:
+The new managed root is `MPI-Strategy-T1-Codex` under the platform application
+data directory (Linux: `mpi-strategy-t1-codex`); override with
+`MPI_STRATEGY_T1_CODEX_ROOT`, never the legacy T1 variable.
+The installer prepares missing repositories only. Existing ones must verify;
+no reset/replacement is performed on revalidation.
 
-   ```sh
-   python scripts/install_runtime.py
-   ```
+## Revalidation
 
-   The installer itself must open OMP login, run the redacted Personal or
-   Business workspace confirmation, check the T1-specific OS credential vault,
-   and—when the DeepSeek credential is absent—run the masked local
-   `credential_store.py` prompt. It must then request the exact local phrase
-   `RUN PUBLIC SMOKE`, run the immutable base installer and doctor, and require
-   base `READY.json` to contain `ready: true`. `TEAM` remains an accepted alias
-   for Business. Never paste credentials into chat or command arguments.
-7. Only after the runtime installer reports `PASS`, run the separate static
-   package validator:
+```sh
+python scripts/install_runtime.py --base-skill-dir <immutable-base> --revalidate-existing --confirm-public-smoke
+```
 
-   ```sh
-   python scripts/validate_package.py
-   ```
+Each attempt preserves the previous runtime receipt, marks current readiness
+false before live checks and writes success only after repository doctors,
+DS-only model catalog, disposable fault injection, mechanical/DOCX and both
+DeepSeek public smoke calls pass. Failure leaves a non-ready current receipt.
+Legacy T1 READY and historical receipts are never rewritten or reused.
+No OpenAI account/usage lookup is performed.
 
-   A passing static validator without a passing runtime installer means only
-   that the files are intact; it is not an installed provider runtime.
-8. Confirm the selected GPT-5.6 or GPT-6 model and reasoning level are supported
-   by the current Codex runtime, and record their actual values.
-   This task setting is separate from the OMP OAuth account.
-9. Verify the runtime report contains exact OMP `17.3.4`,
-   `deepseek_credential_present: true`, `base_ready: true`, and
-   `public_smoke_status: PASS`. Never send a manuscript as installation smoke.
-10. Follow [readiness.md](readiness.md). Do not mark the candidate production-
-   ready merely because the files copied successfully.
-
-The runtime installer may never report `PASS` when a required command was
-skipped. A Codex-only result is not T1-Codex and must be labeled `BLOCKED` or a
-separate experiment.
-
-Ordinary MPI Buddhist translation routes to this Skill. Explicit T1-OMP, C, M,
-M2, media-specific, and non-Buddhist requests remain separate.
+Schema-2 `T1_CODEX_RUNTIME_READY.json` records `runtime_profile: deepseek-only-v1`,
+provider readiness, exact package/base hashes, repository and QA evidence.
+`runtime_ready` covers only the provider runtime, not the current Codex identity,
+full document gates or human approval. `codex_task_setting_still_requires_direct_verification`
+remains true. Follow readiness.md before making any broader claim.
