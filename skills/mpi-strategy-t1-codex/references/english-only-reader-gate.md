@@ -63,6 +63,16 @@ Findings must cite the English location and wording, explain the reader impact,
 offer a concrete option when useful, assign severity, and state whether the
 issue is a blocker. Readers do not edit the manuscript.
 
+## Verb-led English reader checks
+
+Reader A checks whether actions are buried in nouns or abstract framing,
+whether who does what is clear, and whether direct verbs would improve the
+English. Reader B flags possible Buddhist conceptual shifts, conditions phrased
+as causes, or states and doctrinal relations phrased as intentional actions.
+Both readers see English only. Reader B flags suspicions, not Chinese-fidelity
+verdicts: only source-based Chinese verification and bilingual semantic
+regression determine whether the English departs from the Chinese.
+
 ## Translator adjudication and commissioner decisions
 
 Group findings into shared, general-reader-only and Dharma-reader-only issues,
@@ -102,6 +112,13 @@ After all approved reader-driven edits, bind a new target hash and rerun:
 3. the general nonfiction editor final read in a fresh English-only session;
 4. the English Buddhist/Dharma editor final read in another fresh English-only
    session.
+
+- Explicitly test whether verb-led revision introduces an unsupported subject,
+  stronger intention or responsibility, stronger causality, changed agent/patient
+  relations, lost possibility/frequency/conditions, or changed time, aspect,
+  sequence, scope, or Buddhist concepts. Apply the same checks to the mandatory
+  full-document post-reader regression; retain the complete Chinese recheck
+  and independent bilingual semantic regression, not only changed-line checks.
 
 Run the final reader sessions even when the first readers produced no applied
 change. Any target edit invalidates all earlier final-reader certificates.

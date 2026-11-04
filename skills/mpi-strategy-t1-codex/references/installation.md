@@ -19,6 +19,22 @@ program in `production-lock.json` passes.
 
 ## Required order
 
+For an already installed runtime, first use the bounded revalidation entry:
+
+```sh
+python scripts/install_runtime.py --revalidate-existing --confirm-public-smoke
+```
+
+Use the smoke flag only when these public requests are authorized. This path
+requires a valid saved Personal/Business selection, verifies the current account
+and existing locked checkouts, and runs the unchanged base public smoke before
+writing a new package-bound runtime report. It does not log in, install
+dependencies, clone repositories, or rewrite historical base evidence. Failures
+leave the prior runtime report intact. Authenticate or confirm a changed account
+only when that specific check fails. The steps below remain the first-install
+and missing-installation recovery path. This repair is a local runtime revision;
+it does not change the immutable base release or assert a new public release.
+
 1. Read Codex's built-in `skill-installer` instructions.
 2. Inspect existing `mpi-strategy-t1` and `mpi-strategy-t1-codex` directories.
    Never overwrite an existing installation without reporting its version,

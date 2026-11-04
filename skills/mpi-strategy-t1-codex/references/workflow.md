@@ -19,6 +19,10 @@ Read it at intake, not only after English has been drafted. Its genre-specific
 voice guidance does not turn scholarly or canonical commentary into public-talk
 prose.
 
+The verb-led English integration `verb-led-english-1` preserves version 1.2.0.
+The earlier 1.1.1-local.1 stages 13/14 map to this workflow’s stages 14/15
+after the added segmentation stage; no stage or model role is added.
+
 ## 1. Intake and authorization
 
 - Before English drafting, establish `style-and-voice.md` as specified in the
@@ -61,6 +65,12 @@ prose.
 - Validate schema, full coverage, source hashes, actual model/effort, and the
   provider receipt. Partial, empty, stale, or malformed output is a failed
   stage, not evidence.
+
+- Identify whether the semantic center is an action/process, state, relation,
+  definition, or evaluation; identify who acts, changes, experiences, or is
+  affected. Record which agency, causality, intention, or degree must not be
+  added. Apply these checks in the existing source analysis, segmentation, and
+  source-only post-edit map, without creating a new review round.
 
 ## 5. High-risk semantic bridge
 
@@ -117,6 +127,11 @@ prose.
   do not draft by word substitution. Check agents, referents, abstract noun
   actions, logical connectors, metaphor mechanics, and argument rhythm. Chinese
   segmentation boundaries do not prescribe English sentence boundaries.
+- For Chinese expressing action, process, change, effect, or practice, normally
+  put the central action in a clear English finite verb. Prefer a personal or
+  concrete subject supported by the source or context; do not let abstract
+  framing carry the main meaning. Never add agency or shift emphasis to obtain
+  a verb-led sentence. Accuracy always takes priority.
 - Perform a translator-owned full-document accuracy, completeness, terminology,
   fluency, register, and structure review against the original Chinese.
 - Write `constraint-coverage.jsonl`, mapping every frozen high-risk constraint
@@ -158,7 +173,23 @@ prose.
   distinctions, concision, and exact repeated-heading identity.
 - Do not add generic formal wrappers absent from the Chinese.
 
-## 14. Independent concision and naturalness pass
+## 14. Independent action-verb, concision, and naturalness pass
+
+- Inspect the main verb clause by clause across the complete manuscript. Flag
+  actions buried in nouns; nominalization, support verbs and abstract carrier
+  phrases; empty openings and unnecessary passives; abstract subjects assigned
+  unnatural actions; and long noun strings whose semantic center is an action.
+- Rewrite only while preserving agent, patient, causality, degree, aspect, logic,
+  and emphasis. Do not invent a subject, intention, responsibility, cause, or
+  sequence. Retain noun structures, passives, existentials, and copular clauses
+  when they accurately express doctrine, states, definitions, or discourse focus.
+  No active-voice ratio, verb-count target, or deletion quota is permitted.
+- For every execution, retain `verb-led-style-review.jsonl` as specified in the
+  addendum, including flagged sentences deliberately retained. In the existing
+  editing record, bind the checked draft SHA-256, whole-document completion,
+  and issue count. An empty JSONL requires explicit “已完成，零问题” (completed,
+  zero issues); absence is not completion. Material edits retain the existing
+  commissioner decision requirement.
 
 - Codex removes duplicated framing, abstract carrier phrases, support-verb
   constructions, stacked qualifications, unnecessary near-synonyms, and
@@ -173,6 +204,13 @@ prose.
 - Freeze `target.dj` only after this complete Chinese recheck.
 
 ## 15. Fresh post-concision semantic regression
+
+- Explicitly test whether verb-led revision introduces an unsupported subject,
+  stronger intention or responsibility, stronger causality, changed agent/patient
+  relations, lost possibility/frequency/conditions, or changed time, aspect,
+  sequence, scope, or Buddhist concepts. Apply the same checks to the mandatory
+  full-document post-reader regression; retain the complete Chinese recheck
+  and independent bilingual semantic regression, not only changed-line checks.
 
 - A new Pro/max session reads frozen Chinese, final `target.dj`, term evidence,
   and accepted high-risk decisions, but no prior English or findings.
@@ -202,6 +240,14 @@ prose.
   read-aloud logical structure and rhythm, unnecessary passives, and needless Buddhist
   coloration in ordinary expressions. Readers report findings and blockers but
   do not edit the target.
+
+Reader A checks whether actions are buried in nouns or abstract framing,
+whether who does what is clear, and whether direct verbs would improve the
+English. Reader B flags possible Buddhist conceptual shifts, conditions phrased
+as causes, or states and doctrinal relations phrased as intentional actions.
+Both readers see English only. Reader B flags suspicions, not Chinese-fidelity
+verdicts: only source-based Chinese verification and bilingual semantic
+regression determine whether the English departs from the Chinese.
 
 ## 17. Source-based reader adjudication and commissioner choice
 
@@ -286,7 +332,8 @@ receipts, `source-analysis.json`, risk register, bridge, bridge review and
 decisions, Chinese semantic-segmentation JSONL, line-parallel Djot, independent
 segmentation review, requested human-readable segmentation report,
 `target-draft.dj`, constraint coverage, both bilingual reviews and Codex
-adjudication logs, title and concision records, final `target.dj`,
+adjudication logs, title and concision records, `verb-led-style-review.jsonl`
+and its checked-draft SHA-256/completion/issue-count receipt, final `target.dj`,
 regenerated `bilingual.dj`, exact initial and final English-only reader-visible
 manuscripts, initial general and Dharma reader reports, reader isolation
 receipts, reader adjudication, commissioner decisions, post-reader complete

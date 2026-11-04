@@ -36,7 +36,17 @@ coverage and these locked invariants:
 
 ## Local runtime readiness
 
-Run `python scripts/install_runtime.py` interactively. A local, non-repository
+For first installation, run `python scripts/install_runtime.py` interactively.
+For an existing installation with an explicitly confirmed account, run
+`python scripts/install_runtime.py --revalidate-existing --confirm-public-smoke`
+after authorization for the public tests. Revalidation checks the current
+account against its saved selection, both base doctors, locked repositories,
+credentials, OMP, and fresh public smoke. It does not open OAuth or replace
+managed repositories. Missing or changed account selection needs interactive
+confirmation; failed authentication needs login. A manifest change alone does
+not require either. Previous READY and test evidence are retained.
+
+A local, non-repository
 `T1_CODEX_RUNTIME_READY.json` may say `runtime_ready: true` only when:
 
 - the Skill manifest and candidate ref match;

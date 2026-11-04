@@ -52,6 +52,22 @@ workflow. Source authority, material-change decisions, and post-edit semantic
 regression remain mandatory. This editorial revision is
 `semantic-style-native-readers-1`; it does not refresh runtime readiness.
 
+## Verb-led English integration
+
+Local editorial revision `verb-led-english-1` merges the 1.1.1-local.1 rules
+into the newer 1.2.0 workflow without downgrading it or changing runtime locks.
+Use source-supported finite verbs for action/process meanings, with accuracy
+and emphasis taking priority. The existing concision role performs the
+**Independent action-verb, concision, and naturalness pass** (stage 14 here;
+stage 13 in the earlier workflow), followed by stage 15 semantic regression.
+Every execution must produce `verb-led-style-review.jsonl`, including decisions
+to retain flagged sentences; the existing editing record must state the checked
+draft SHA-256, whole-document completion and issue count. For zero issues,
+retain an empty JSONL and explicitly record “已完成，零问题”. Follow the addendum’s
+seven-field schema and material-change approval rules. Both English-only reader
+roles and subsequent full Chinese/bilingual regression include verb-led risks;
+no review round, model role, external authorization, or release approval changes.
+
 ## Non-negotiable boundaries
 
 - Freeze the original input, `source.dj`, project metadata, terminology, and
@@ -87,7 +103,13 @@ regression remain mandatory. This editorial revision is
   workspace. `TEAM` is accepted only as the former Business name. Require the
   selected account configuration to pass the locked model catalog and public
   smoke gates; never store workspace identifiers or credentials in the Skill.
-- Installation must run `python scripts/install_runtime.py` interactively.
+- First installation must run `python scripts/install_runtime.py` interactively.
+  For an existing installation, use `python scripts/install_runtime.py
+  --revalidate-existing --confirm-public-smoke` when public tests are authorized.
+  This preserves the confirmed account and managed checkouts, verifies their
+  current state, and runs fresh public smoke before binding the current package.
+  Reauthenticate only when the existing authentication cannot be verified;
+  do not force browser login merely because the skill manifest changed.
   Static package validation is never runtime readiness. If OMP 17.3.4, the
   masked DeepSeek credential, public smoke, base doctor, or base `READY=true`
   is missing, report `BLOCKED`; never claim that T1-Codex is Codex-only.

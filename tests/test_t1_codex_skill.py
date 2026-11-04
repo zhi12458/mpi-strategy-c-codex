@@ -123,6 +123,11 @@ def test_t1_codex_lock_selects_codex_english_and_independent_pro_roles():
         "reasoning_effort": "runtime-supported",
         "execution_surface": "current Codex task",
         "competing_english_allowed": False,
+        "verb_led_required_checks": [
+            "source_supported_finite_verb_for_action_process_change_effect_practice",
+            "source_supported_personal_or_concrete_subject",
+            "accuracy_and_emphasis_before_verb_led_style",
+        ],
     }
     assert production["model_roles"]["semantic_bridge_generation"]["scope"] == (
         "high-risk source units only"

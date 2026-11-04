@@ -352,6 +352,86 @@ requires the named Dharma reviewer and publication editor's approval.
 
 > 翻译前先判断中文体裁、作者声音、目标读者和对应英文文体。以中文原文为唯一语义依据，逐段完成中文语义分析，补明省略主语，理清因果、条件、转折、递进、并列、对照和承接关系，但不得改写原意。英文应按完整意思重新构建，不保留不自然的中文表层结构。句子不设长短限制，以逻辑清楚、关系明确、自然流畅和适合朗读为标准；长句只要易读即可保留，也不得把复杂论述机械切成短句。候选英文完成后，分别交给彼此隔离的一般英文读者和有一定佛教基础的英文读者，只提供英文稿及体裁说明。汇总反馈后逐条回查中文。语法、搭配、代词、重复和标点等不改变意义的问题可以直接修正；涉及义理、程度、术语、作者语气、比喻、数字、人称、增删信息或句段结构的修改，必须先列出现有英文、建议英文、理由和忠实度影响，由人工决定。济群法师的大众弘法讲稿应译成当代、清明、平实而有义理深度的英文佛法开示：面向普通读者，保持法师的沉着、亲切、直接和循序渐进，不学院化、不仿古、不轻佻，也不改写成励志或自助文体。所有英文自然化修改完成后，必须再次执行全文中文语义回归和英文隔离复审。
 
+## Verb-led English（动词主导的英文）— `verb-led-english-1`
+
+本规则合并至较新的 1.2.0，不降低版本。旧版第 13／14 阶段对应本机第
+14／15 阶段；只细化既有 concision 角色，不新增轮次或模型角色。
+适用于本工作流的起草与编辑；体裁和准确性优先，不把义理论述强改成行动叙事。
+
+### 中文语义分析与英文起草
+
+- Identify whether the semantic center is an action/process, state, relation,
+  definition, or evaluation; identify who acts, changes, experiences, or is
+  affected. Record which agency, causality, intention, or degree must not be
+  added. Apply these checks in the existing source analysis, segmentation, and
+  source-only post-edit map, without creating a new review round.
+
+- For Chinese expressing action, process, change, effect, or practice, normally
+  put the central action in a clear English finite verb. Prefer a personal or
+  concrete subject supported by the source or context; do not let abstract
+  framing carry the main meaning. Never add agency or shift emphasis to obtain
+  a verb-led sentence. Accuracy always takes priority.
+
+### Independent action-verb, concision, and naturalness pass
+
+- Inspect the main verb clause by clause across the complete manuscript. Flag
+  actions buried in nouns; nominalization, support verbs and abstract carrier
+  phrases; empty openings and unnecessary passives; abstract subjects assigned
+  unnatural actions; and long noun strings whose semantic center is an action.
+- Rewrite only while preserving agent, patient, causality, degree, aspect, logic,
+  and emphasis. Do not invent a subject, intention, responsibility, cause, or
+  sequence. Retain noun structures, passives, existentials, and copular clauses
+  when they accurately express doctrine, states, definitions, or discourse focus.
+  No active-voice ratio, verb-count target, or deletion quota is permitted.
+- For every execution, retain `verb-led-style-review.jsonl` as specified in the
+  addendum, including flagged sentences deliberately retained. In the existing
+  editing record, bind the checked draft SHA-256, whole-document completion,
+  and issue count. An empty JSONL requires explicit “已完成，零问题” (completed,
+  zero issues); absence is not completion. Material edits retain the existing
+  commissioner decision requirement.
+
+### 专项问题记录
+
+每次执行都创建 `verb-led-style-review.jsonl`，只记录标出的问题（包括最终决定
+保留原句的情况），不是逐句打勾清单。每行一个 JSON 对象，字段为：
+
+- `target_line`: 检查稿中从 1 开始的物理行号；同一行可有多个问题。
+- `before`: 检查稿的原英文分句或句子。
+- `after`: 实际采纳的英文；决定保留或待人工决定未应用时等于 `before`。
+- `issue`: 问题及处理理由，包括保留理由或未决人工选择。
+- `source_supported_actor`: 中文或上下文支持的施事及来源定位；无明确施事时
+  明记未明示／不适用，不为填字段而虚构主体。
+- `protected_constraints_checked`: 实际核验的施受关系、因果、意图／责任、程度、
+  可能性、频率、条件、时间／体貌、顺序、逻辑／范围、强调重点与佛学概念及结果。
+- `material_change`: 布尔值，标示该项拟议修改是否实质性；未应用不等于非实质。
+
+在既有编辑记录中写明 `checked_target_sha256`（检查前的精确稿件 SHA-256）、
+`whole_document_check_completed`、`issue_count`，并索引本 JSONL 的路径与 SHA-256。
+保留该检查稿，使行号和 before 可追溯。零问题仍保留空 JSONL，并明确记录
+“已完成，零问题”；检查未完成不得写此状态。再次执行保留各次稿件与记录，
+不得以新记录覆盖旧证据。实质修改沿用既有人工选项、忠实度影响和决定记录；
+此专项记录不代替人工决定，不授权应用尚未批准的修改。
+
+### 语义回归与隔离读者
+
+- Explicitly test whether verb-led revision introduces an unsupported subject,
+  stronger intention or responsibility, stronger causality, changed agent/patient
+  relations, lost possibility/frequency/conditions, or changed time, aspect,
+  sequence, scope, or Buddhist concepts. Apply the same checks to the mandatory
+  full-document post-reader regression; retain the complete Chinese recheck
+  and independent bilingual semantic regression, not only changed-line checks.
+
+Reader A checks whether actions are buried in nouns or abstract framing,
+whether who does what is clear, and whether direct verbs would improve the
+English. Reader B flags possible Buddhist conceptual shifts, conditions phrased
+as causes, or states and doctrinal relations phrased as intentional actions.
+Both readers see English only. Reader B flags suspicions, not Chinese-fidelity
+verdicts: only source-based Chinese verification and bilingual semantic
+regression determine whether the English departs from the Chinese.
+
+保留全文中文回查、独立双语回归及英文审读后再次全文回归的要求。
+包校验只证明规则声明与文件完整性，不证明真实译稿质量或运行就绪。
+
 ## 参考依据
 
 济群法师公开资料显示，其弘法内容同时覆盖人生佛教、社会与道德、修学引导、佛学研究、交流答疑和戒律等不同类型，因此每篇文章仍须先判断具体体裁，不能用单一文体覆盖全部著作：

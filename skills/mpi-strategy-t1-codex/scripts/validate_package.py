@@ -114,6 +114,119 @@ def require(value: bool, message: str) -> None:
         raise ValidationError(message)
 
 
+# Minimum editorial contract: independent of either mutable lock file.
+VERB_LED_REQUIRED = {'revision': 'verb-led-english-1',
+ 'workflow_version': '1.2.0',
+ 'source_analysis_checks': ['semantic_center_action_process_state_relation_definition_evaluation',
+                            'who_acts_changes_experiences_or_is_affected',
+                            'no_added_agency_causality_intention_degree'],
+ 'drafting_checks': ['source_supported_finite_verb_for_action_process_change_effect_practice',
+                     'source_supported_personal_or_concrete_subject',
+                     'accuracy_and_emphasis_before_verb_led_style'],
+ 'clause_checks': ['buried_actions',
+                   'nominalization_support_verbs_abstract_framing',
+                   'empty_openings_unnecessary_passives',
+                   'abstract_subject_unnatural_action',
+                   'action_centered_long_noun_strings'],
+ 'regression_checks': ['unsupported_subject',
+                       'stronger_intention_or_responsibility',
+                       'stronger_causality',
+                       'changed_agent_patient',
+                       'lost_possibility_frequency_conditions',
+                       'changed_time_aspect_sequence_scope_buddhist_concepts'],
+ 'reader_a_checks': ['buried_actions_or_abstract_framing',
+                     'clear_who_does_what',
+                     'direct_verb_improvement'],
+ 'reader_b_checks': ['possible_buddhist_concept_shift',
+                     'condition_as_cause',
+                     'state_or_doctrinal_relation_as_intentional_action'],
+ 'preserve_accurate_noun_passive_existential_copular_structures': True,
+ 'active_voice_verb_count_deletion_quotas_forbidden': True,
+ 'reader_b_flags_only_chinese_and_bilingual_verification_required': True,
+ 'no_new_rounds_or_model_roles': True,
+ 'material_changes_require_existing_commissioner_decision': True,
+ 'record': {'artifact': 'verb-led-style-review.jsonl',
+            'required_fields': ['target_line',
+                                'before',
+                                'after',
+                                'issue',
+                                'source_supported_actor',
+                                'protected_constraints_checked',
+                                'material_change'],
+            'flagged_issues_only': True,
+            'retained_sentences_included': True,
+            'empty_jsonl_required_for_zero_issues': True,
+            'zero_issue_status': '已完成，零问题',
+            'editing_record_required_fields': ['checked_target_sha256',
+                                               'whole_document_check_completed',
+                                               'issue_count'],
+            'checked_draft_retained': True}}
+
+
+def require_contract(actual: Any, expected: Any, location: str) -> None:
+    if isinstance(expected, dict):
+        require(isinstance(actual, dict), f"verb-led contract missing: {location}")
+        for key, value in expected.items():
+            require(key in actual, f"verb-led requirement missing: {location}.{key}")
+            require_contract(actual[key], value, f"{location}.{key}")
+    elif isinstance(expected, list):
+        require(isinstance(actual, list), f"verb-led list missing: {location}")
+        for value in expected:
+            require(value in actual, f"verb-led check missing: {location}: {value}")
+    else:
+        require(type(actual) is type(expected) and actual == expected,
+                f"verb-led requirement invalid: {location}")
+
+
+def validate_verb_led_policy(skill_dir: Path, production: dict, dependency: dict) -> None:
+    expected = dict(VERB_LED_REQUIRED)
+    # Preserve a newer workflow; both locks must still agree with its actual version.
+    expected["workflow_version"] = production.get("workflow_version")
+    for name, lock in (("production", production), ("dependency", dependency)):
+        require_contract(lock.get("verb_led_english"), expected, name + ".verb_led_english")
+    roles = production.get("model_roles", {})
+    mappings = {
+        "source_analysis": "source_analysis_checks",
+        "translation_and_self_review": "drafting_checks",
+        "post_concision_semantic_regression": "regression_checks",
+        "english_only_general_reader": "reader_a_checks",
+        "english_only_dharma_reader": "reader_b_checks",
+    }
+    for role, checks in mappings.items():
+        require_contract(roles.get(role, {}).get("verb_led_required_checks"),
+                         expected[checks], "roles." + role)
+    require_contract(roles.get("concision_and_chinese_recheck"), {
+        "pass_name": "Independent action-verb, concision, and naturalness pass",
+        "required_checks": expected["clause_checks"],
+        "required_artifacts": ["verb-led-style-review.jsonl"],
+        "whole_document_clause_check_required": True,
+    }, "roles.concision_and_chinese_recheck")
+    gates = ["verb_led_source_analysis_and_drafting", "verb_led_clause_review_and_issue_record",
+             "verb_led_semantic_regression", "verb_led_english_only_reader_checks"]
+    require_contract(production.get("required_document_gates"), gates, "production.gates")
+    require_contract(dependency.get("required_gates"), gates, "dependency.gates")
+    declarations = {
+        "SKILL.md": ["verb-led-style-review.jsonl", "已完成，零问题",
+                     "Independent action-verb, concision, and naturalness pass"],
+        "references/workflow.md": ["verb-led-style-review.jsonl", "已完成，零问题",
+                     "Independent action-verb, concision, and naturalness pass",
+                     "unsupported subject", "Reader A", "Reader B"],
+        "references/semantic-style-native-reader-addendum.md":
+            ["verb-led-style-review.jsonl", "已完成，零问题"]
+            + expected["record"]["required_fields"]
+            + expected["record"]["editing_record_required_fields"],
+        "references/english-only-reader-gate.md":
+            ["Verb-led English reader checks", "Reader A", "Reader B",
+             "only source-based Chinese verification and bilingual semantic"],
+    }
+    for relative, markers in declarations.items():
+        path = skill_dir / relative
+        require(path.is_file(), f"verb-led reference missing: {relative}")
+        content = path.read_text(encoding="utf-8")
+        for marker in markers:
+            require(marker in content, f"verb-led declaration missing: {relative}: {marker}")
+
+
 def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
     dependency = load_object(skill_dir / "dependency-lock.json")
     production = load_object(skill_dir / "references" / "production-lock.json")
@@ -147,6 +260,8 @@ def validate_policy(skill_dir: Path = SKILL_DIR) -> dict[str, Any]:
         is False,
         "Chinese semantic segmentation must not be authoritative",
     )
+
+    validate_verb_led_policy(skill_dir, production, dependency)
 
     workspace = dependency.get("openai_workspace_policy", {})
     require(

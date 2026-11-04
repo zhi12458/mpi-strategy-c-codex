@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -293,6 +294,114 @@ def install_runtime(base_skill: Path) -> dict[str, Any]:
     return {**report, "report_path": str(destination)}
 
 
+def verify_existing_workspace(root: Path, omp: str) -> dict[str, Any]:
+    """Verify the previous explicit selection without logging in or recording identity."""
+    confirmation_path = root / "personal-workspace-confirmation.json"
+    confirmation = load_object(confirmation_path)
+    if (confirmation.get("schema_version") != 2
+            or confirmation.get("confirmed") is not True
+            or confirmation.get("workspace_kind") not in {"personal", "business"}):
+        raise RuntimeInstallError("existing workspace selection needs interactive confirmation")
+    script = Path(__file__).with_name("confirm_workspace.py")
+    spec = importlib.util.spec_from_file_location("t1_refresh_workspace", script)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    try:
+        payload = run_json((omp, "usage", "--provider", "openai-codex", "--redact", "--json"), root)
+    except RuntimeInstallError as exc:
+        # Do not echo usage payloads, account labels, or provider errors.
+        raise RuntimeInstallError("existing OpenAI account could not be verified; check authentication") from exc
+    summaries = module.public_summary(module.enabled_reports(payload))
+    number = confirmation.get("selected_report_number")
+    if type(number) is not int or not 1 <= number <= len(summaries):
+        raise RuntimeInstallError("previous workspace is unavailable; select it interactively")
+    encoded = json.dumps(summaries[number - 1], ensure_ascii=False,
+                         sort_keys=True, separators=(",", ":")).encode("utf-8")
+    if hashlib.sha256(encoded).hexdigest() != confirmation.get("selected_summary_sha256"):
+        raise RuntimeInstallError("workspace selection changed; confirm it interactively")
+    return {"confirmed": True, "workspace_kind": confirmation["workspace_kind"],
+            "confirmation_sha256": sha256_file(confirmation_path),
+            "current_selected_summary_sha256": hashlib.sha256(encoded).hexdigest(),
+            "authentication_reused": True, "identifiers_recorded": False}
+
+
+def refresh_public_smoke(base_skill: Path, evidence_root: Path, ready: dict[str, Any]) -> dict[str, Any]:
+    """Run the unchanged base smoke on the already verified managed checkout."""
+    program = (
+        "import json,sys; from pathlib import Path; "
+        "sys.path.insert(0,sys.argv[1]); "
+        "from t1_smoke_test import run_smoke_test; from t1_runtime import load_lock; "
+        "print(json.dumps(run_smoke_test(Path(sys.argv[2]),Path(sys.argv[3]),load_lock())))"
+    )
+    return run_json((sys.executable, "-c", program, str(base_skill / "scripts"),
+                     str(evidence_root), ready["translation_toolkit"]["absolute_path"]), base_skill)
+
+
+def revalidate_existing_runtime(base_skill: Path, *, confirm_public_smoke: bool) -> dict[str, Any]:
+    """Refresh evidence without OAuth, repository replacement, or historical relabelling."""
+    if not confirm_public_smoke:
+        raise RuntimeInstallError("public live smoke requires --confirm-public-smoke")
+    base_skill = base_skill.expanduser().resolve()
+    verify_base_package(base_skill)
+    skill_dir = Path(__file__).resolve().parents[1]
+    candidate = load_object(skill_dir / "dependency-lock.json")
+    package = run_json((sys.executable, "scripts/validate_package.py"), skill_dir)
+    if package.get("status") != "PASS":
+        raise RuntimeInstallError("T1-Codex package validation did not pass")
+    missing = missing_dependencies()
+    if missing:
+        raise RuntimeInstallError("required dependencies are missing: " + ", ".join(missing))
+    omp = shutil.which("omp")
+    if not omp or omp_version(omp) != EXPECTED_OMP_VERSION:
+        raise RuntimeInstallError("existing OMP must be exactly " + EXPECTED_OMP_VERSION)
+    root = managed_root()
+    ready = base_ready_from_doctor(run_json((sys.executable, "scripts/strategy_t1.py", "doctor"), base_skill))
+    if not credential_present(base_skill):
+        raise RuntimeInstallError("DeepSeek credential is missing; use the masked credential prompt")
+    account = verify_existing_workspace(root, omp)
+    evidence_root = root / "runtime-revalidations" / uuid.uuid4().hex
+    evidence_root.mkdir(parents=True)
+    try:
+        smoke = refresh_public_smoke(base_skill, evidence_root, ready)
+        smoke_path = evidence_root / "smoke-test-report.json"
+        if (smoke.get("status") != "PASS" or not smoke_path.is_file()
+                or sha256_file(smoke_path) != smoke.get("report_sha256")):
+            raise RuntimeInstallError("fresh public smoke evidence did not pass")
+        # A successful live request never substitutes for a final state check.
+        ready = base_ready_from_doctor(run_json((sys.executable, "scripts/strategy_t1.py", "doctor"), base_skill))
+        account = verify_existing_workspace(root, omp)
+    except (RuntimeInstallError, subprocess.TimeoutExpired):
+        atomic_json(evidence_root / "attempt.json", {
+            "status": "FAIL", "runtime_ready_updated": False,
+            "completed_at": datetime.now(timezone.utc).isoformat()})
+        raise
+    report = {
+        "schema_version": 1, "runtime_ready": True,
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "candidate_ref": candidate.get("candidate_ref"),
+        "candidate_manifest_sha256": package["manifest"]["sha256"],
+        "package_runtime_revision": "existing-runtime-revalidation-local-1",
+        "runtime_mode": "revalidate-existing", "omp_version": EXPECTED_OMP_VERSION,
+        "deepseek_credential_present": True, "base_ready": True,
+        "base_ready_created_at": ready.get("created_at"),
+        "base_ready_completed_at": ready.get("completed_at"),
+        "base_manifest_sha256": ready.get("skill_manifest", {}).get("sha256"),
+        "base_ready_sha256": sha256_file(root / "READY.json"),
+        "public_smoke_status": "PASS",
+        "public_smoke_evidence": {"path": str(smoke_path), "sha256": sha256_file(smoke_path)},
+        "workspace_revalidation": account,
+        "repositories_replaced": False, "historical_receipts_rewritten": False,
+        "codex_task_setting_still_requires_direct_verification": True,
+        "strategy_release_ready": False, "credentials_recorded": False,
+    }
+    destination = root / READY_NAME
+    if destination.exists():
+        shutil.copy2(destination, evidence_root / "previous-runtime-ready.json")
+    atomic_json(destination, report)
+    return {**report, "report_path": str(destination)}
+
+
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(description=__doc__)
     value.add_argument(
@@ -301,13 +410,21 @@ def parser() -> argparse.ArgumentParser:
         default=Path(__file__).resolve().parents[2] / "mpi-strategy-t1",
         help="path to the immutable mpi-strategy-t1 Skill",
     )
+    value.add_argument("--revalidate-existing", action="store_true",
+                       help="verify an existing installation and refresh evidence without OAuth or cloning")
+    value.add_argument("--confirm-public-smoke", action="store_true",
+                       help="authorize fixed public smoke requests for existing-runtime revalidation")
     return value
 
 
 def main() -> int:
     args = parser().parse_args()
     try:
-        result = install_runtime(args.base_skill_dir)
+        if args.revalidate_existing:
+            result = revalidate_existing_runtime(args.base_skill_dir,
+                                                  confirm_public_smoke=args.confirm_public_smoke)
+        else:
+            result = install_runtime(args.base_skill_dir)
     except (RuntimeInstallError, subprocess.TimeoutExpired) as exc:
         print(json.dumps({"status": "BLOCKED", "error": str(exc)}, ensure_ascii=False, indent=2))
         return 2

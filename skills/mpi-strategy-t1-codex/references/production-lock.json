@@ -68,7 +68,12 @@
       "model": "deepseek-v4-flash",
       "reasoning_effort": "high",
       "execution_surface": "locked OMP",
-      "reads": "frozen Chinese source-side inputs only; no English"
+      "reads": "frozen Chinese source-side inputs only; no English",
+      "verb_led_required_checks": [
+        "semantic_center_action_process_state_relation_definition_evaluation",
+        "who_acts_changes_experiences_or_is_affected",
+        "no_added_agency_causality_intention_degree"
+      ]
     },
     "semantic_bridge_generation": {
       "model": "deepseek-v4-flash",
@@ -93,7 +98,12 @@
       "model": "runtime-selected-gpt-5.6-or-gpt-6",
       "reasoning_effort": "runtime-supported",
       "execution_surface": "current Codex task",
-      "competing_english_allowed": false
+      "competing_english_allowed": false,
+      "verb_led_required_checks": [
+        "source_supported_finite_verb_for_action_process_change_effect_practice",
+        "source_supported_personal_or_concrete_subject",
+        "accuracy_and_emphasis_before_verb_led_style"
+      ]
     },
     "post_translation_chinese_semantic_map": {
       "model": "runtime-selected-gpt-5.6-or-gpt-6",
@@ -122,7 +132,12 @@
       "model": "deepseek-v4-pro",
       "reasoning_effort": "max",
       "execution_surface": "fresh locked OMP session",
-      "blind_to": ["source analysis", "bridge artifacts", "competing translations", "future reviews"]
+      "blind_to": [
+        "source analysis",
+        "bridge artifacts",
+        "competing translations",
+        "future reviews"
+      ]
     },
     "review_application_round_1": {
       "model": "runtime-selected-gpt-5.6-or-gpt-6",
@@ -133,7 +148,12 @@
       "model": "deepseek-v4-pro",
       "reasoning_effort": "max",
       "execution_surface": "new locked OMP session",
-      "blind_to": ["round one", "source analysis", "bridge artifacts", "competing translations"]
+      "blind_to": [
+        "round one",
+        "source analysis",
+        "bridge artifacts",
+        "competing translations"
+      ]
     },
     "review_application_round_2": {
       "model": "runtime-selected-gpt-5.6-or-gpt-6",
@@ -148,27 +168,79 @@
     "concision_and_chinese_recheck": {
       "model": "runtime-selected-gpt-5.6-or-gpt-6",
       "reasoning_effort": "runtime-supported",
-      "execution_surface": "current Codex task"
+      "execution_surface": "current Codex task",
+      "pass_name": "Independent action-verb, concision, and naturalness pass",
+      "required_checks": [
+        "buried_actions",
+        "nominalization_support_verbs_abstract_framing",
+        "empty_openings_unnecessary_passives",
+        "abstract_subject_unnatural_action",
+        "action_centered_long_noun_strings"
+      ],
+      "required_artifacts": [
+        "verb-led-style-review.jsonl"
+      ],
+      "whole_document_clause_check_required": true
     },
     "post_concision_semantic_regression": {
       "model": "deepseek-v4-pro",
       "reasoning_effort": "max",
       "execution_surface": "fresh locked OMP session",
-      "checks": "both Chinese-to-English coverage and English-to-Chinese support for every high-risk constraint"
+      "checks": "both Chinese-to-English coverage and English-to-Chinese support for every high-risk constraint",
+      "verb_led_required_checks": [
+        "unsupported_subject",
+        "stronger_intention_or_responsibility",
+        "stronger_causality",
+        "changed_agent_patient",
+        "lost_possibility_frequency_conditions",
+        "changed_time_aspect_sequence_scope_buddhist_concepts"
+      ]
     },
     "english_only_general_reader": {
       "reader_role": "general nonfiction editor",
       "execution_surface": "fresh isolated English-only session",
-      "visible_inputs": ["readable English-only manuscript generated from and hash-bound to current target"],
+      "visible_inputs": [
+        "readable English-only manuscript generated from and hash-bound to current target"
+      ],
       "raw_djot_with_chinese_anchors_forbidden": true,
-      "forbidden_inputs": ["Chinese", "term map", "old translations", "bilingual files", "semantic artifacts", "translator context", "prior feedback", "other reader output"]
+      "forbidden_inputs": [
+        "Chinese",
+        "term map",
+        "old translations",
+        "bilingual files",
+        "semantic artifacts",
+        "translator context",
+        "prior feedback",
+        "other reader output"
+      ],
+      "verb_led_required_checks": [
+        "buried_actions_or_abstract_framing",
+        "clear_who_does_what",
+        "direct_verb_improvement"
+      ]
     },
     "english_only_dharma_reader": {
       "reader_role": "English Buddhist/Dharma editor",
       "execution_surface": "different fresh isolated English-only session",
-      "visible_inputs": ["readable English-only manuscript generated from and hash-bound to current target"],
+      "visible_inputs": [
+        "readable English-only manuscript generated from and hash-bound to current target"
+      ],
       "raw_djot_with_chinese_anchors_forbidden": true,
-      "forbidden_inputs": ["Chinese", "term map", "old translations", "bilingual files", "semantic artifacts", "translator context", "prior feedback", "other reader output"]
+      "forbidden_inputs": [
+        "Chinese",
+        "term map",
+        "old translations",
+        "bilingual files",
+        "semantic artifacts",
+        "translator context",
+        "prior feedback",
+        "other reader output"
+      ],
+      "verb_led_required_checks": [
+        "possible_buddhist_concept_shift",
+        "condition_as_cause",
+        "state_or_doctrinal_relation_as_intentional_action"
+      ]
     }
   },
   "english_only_reader_gate": {
@@ -350,7 +422,11 @@
     "docx_text_accessibility_and_visual_qa_when_applicable",
     "clean_alternating_bilingual_docx_internal_material_exclusion",
     "final_manifest",
-    "named_human_release_gate"
+    "named_human_release_gate",
+    "verb_led_source_analysis_and_drafting",
+    "verb_led_clause_review_and_issue_record",
+    "verb_led_semantic_regression",
+    "verb_led_english_only_reader_checks"
   ],
   "release_validation": {
     "required_genres": ["Dharma talk", "written article", "quotation-dense Buddhist text"],
@@ -410,5 +486,71 @@
     "runtime_availability_verification_required": true,
     "scope": "Codex-owned roles only; independent Flash/Pro and base OMP locks are unchanged.",
     "evidence": "OpenAI model pages plus locally advertised Codex model catalog, 2026-09-06. none is API-supported for GPT-5.6; ultra is a Codex-advertised level for Sol, Terra and Astra. Only use a level actually exposed by the chosen runtime."
+  },
+  "verb_led_english": {
+    "revision": "verb-led-english-1",
+    "workflow_version": "1.2.0",
+    "source_analysis_checks": [
+      "semantic_center_action_process_state_relation_definition_evaluation",
+      "who_acts_changes_experiences_or_is_affected",
+      "no_added_agency_causality_intention_degree"
+    ],
+    "drafting_checks": [
+      "source_supported_finite_verb_for_action_process_change_effect_practice",
+      "source_supported_personal_or_concrete_subject",
+      "accuracy_and_emphasis_before_verb_led_style"
+    ],
+    "clause_checks": [
+      "buried_actions",
+      "nominalization_support_verbs_abstract_framing",
+      "empty_openings_unnecessary_passives",
+      "abstract_subject_unnatural_action",
+      "action_centered_long_noun_strings"
+    ],
+    "regression_checks": [
+      "unsupported_subject",
+      "stronger_intention_or_responsibility",
+      "stronger_causality",
+      "changed_agent_patient",
+      "lost_possibility_frequency_conditions",
+      "changed_time_aspect_sequence_scope_buddhist_concepts"
+    ],
+    "reader_a_checks": [
+      "buried_actions_or_abstract_framing",
+      "clear_who_does_what",
+      "direct_verb_improvement"
+    ],
+    "reader_b_checks": [
+      "possible_buddhist_concept_shift",
+      "condition_as_cause",
+      "state_or_doctrinal_relation_as_intentional_action"
+    ],
+    "preserve_accurate_noun_passive_existential_copular_structures": true,
+    "active_voice_verb_count_deletion_quotas_forbidden": true,
+    "reader_b_flags_only_chinese_and_bilingual_verification_required": true,
+    "no_new_rounds_or_model_roles": true,
+    "material_changes_require_existing_commissioner_decision": true,
+    "record": {
+      "artifact": "verb-led-style-review.jsonl",
+      "required_fields": [
+        "target_line",
+        "before",
+        "after",
+        "issue",
+        "source_supported_actor",
+        "protected_constraints_checked",
+        "material_change"
+      ],
+      "flagged_issues_only": true,
+      "retained_sentences_included": true,
+      "empty_jsonl_required_for_zero_issues": true,
+      "zero_issue_status": "已完成，零问题",
+      "editing_record_required_fields": [
+        "checked_target_sha256",
+        "whole_document_check_completed",
+        "issue_count"
+      ],
+      "checked_draft_retained": true
+    }
   }
 }
